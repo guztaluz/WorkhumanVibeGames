@@ -9,14 +9,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Trophy, User, RefreshCw, AlertCircle, CheckCircle2, PartyPopper } from "lucide-react"
+import { Trophy, User, RefreshCw, AlertCircle, CheckCircle2, PartyPopper, Trash2, ShieldAlert } from "lucide-react"
 import { Team, Vote } from "@/types/database"
 import { supabase, VotingCategory } from "@/lib/supabase"
-import { setVotingFinished } from "@/lib/voting-state"
+import { setVotingFinished, resetVoting } from "@/lib/voting-state"
 import Link from "next/link"
 
 // Admin code for accessing finish voting controls
 const ADMIN_CODE = "vibegames2024"
+const RESET_PASSWORD = "resetvibes"
 
 function VotingContent() {
   const router = useRouter()
@@ -29,6 +30,7 @@ function VotingContent() {
   const [savedVoterName, setSavedVoterName] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [useLocalStorage, setUseLocalStorage] = useState(false)
+  const [isResetting, setIsResetting] = useState(false)
 
   // Load data on mount
   useEffect(() => {
@@ -163,6 +165,60 @@ function VotingContent() {
 
       if (error) throw error
       // Real-time subscription will update the votes
+    }
+  }
+
+  const handleFullReset = async () => {
+    const password = prompt('Enter reset password to delete ALL data:')
+    if (password !== RESET_PASSWORD) {
+      if (password !== null) {
+        alert('Incorrect password!')
+      }
+      return
+    }
+
+    const confirmReset = confirm(
+      '⚠️ WARNING: This will permanently delete:\n\n' +
+      '• All teams\n' +
+      '• All votes\n' +
+      '• Reset the session state\n\n' +
+      'This cannot be undone. Are you sure?'
+    )
+
+    if (!confirmReset) return
+
+    setIsResetting(true)
+    try {
+      if (useLocalStorage) {
+        // Clear localStorage
+        localStorage.removeItem('vibe-games-teams')
+        localStorage.removeItem('vibe-games-votes')
+        localStorage.removeItem('vibe-games-voter-name')
+      } else {
+        // Clear Supabase tables
+        await supabase.from('votes').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+        await supabase.from('teams').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+      }
+
+      // Reset voting state
+      resetVoting()
+      
+      // Clear local state
+      setTeams([])
+      setVotes([])
+      setVoterName('')
+      setSavedVoterName('')
+      localStorage.removeItem('vibe-games-voter-name')
+
+      alert('✅ All data has been reset successfully!')
+      
+      // Reload the page to ensure clean state
+      window.location.href = '/voting?admin=' + ADMIN_CODE
+    } catch (error) {
+      console.error('Reset failed:', error)
+      alert('Failed to reset. Check console for details.')
+    } finally {
+      setIsResetting(false)
     }
   }
 
@@ -321,6 +377,38 @@ function VotingContent() {
                       >
                         <PartyPopper className="w-4 h-4 mr-2" />
                         Finish Voting & Show Results
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+
+              {/* Admin Reset Button - Danger Zone */}
+              {isAdmin && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                >
+                  <Card className="border-destructive/30 bg-destructive/5">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3 mb-3">
+                        <ShieldAlert className="w-5 h-5 text-destructive" />
+                        <div>
+                          <p className="font-medium text-destructive">Danger Zone</p>
+                          <p className="text-xs text-muted-foreground">
+                            Reset everything and start fresh
+                          </p>
+                        </div>
+                      </div>
+                      <Button 
+                        variant="destructive"
+                        className="w-full" 
+                        onClick={handleFullReset}
+                        disabled={isResetting}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        {isResetting ? 'Resetting...' : 'Reset All Data'}
                       </Button>
                     </CardContent>
                   </Card>

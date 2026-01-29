@@ -2,18 +2,21 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { motion } from "framer-motion"
+import { useRouter } from "next/navigation"
 import { VotingCard } from "@/components/voting-card"
 import { Leaderboard } from "@/components/leaderboard"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Trophy, User, RefreshCw, AlertCircle } from "lucide-react"
+import { Trophy, User, RefreshCw, AlertCircle, CheckCircle2, PartyPopper } from "lucide-react"
 import { Team, Vote } from "@/types/database"
 import { supabase, VotingCategory } from "@/lib/supabase"
+import { setVotingFinished } from "@/lib/voting-state"
 import Link from "next/link"
 
 export default function VotingPage() {
+  const router = useRouter()
   const [teams, setTeams] = useState<Team[]>([])
   const [votes, setVotes] = useState<Vote[]>([])
   const [voterName, setVoterName] = useState("")
@@ -280,16 +283,50 @@ export default function VotingPage() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 }}
-              className="lg:sticky lg:top-24 lg:h-fit"
+              className="lg:sticky lg:top-24 lg:h-fit space-y-4"
             >
               <Leaderboard teams={teams} votes={votes} />
+
+              {/* Finish Voting Button */}
+              {votes.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <Card className="border-primary/30 bg-gradient-to-r from-primary/10 to-accent/10">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3 mb-3">
+                        <CheckCircle2 className="w-5 h-5 text-primary" />
+                        <div>
+                          <p className="font-medium">Ready to reveal results?</p>
+                          <p className="text-xs text-muted-foreground">
+                            {votes.length} votes from {new Set(votes.map(v => v.voter_name.toLowerCase())).size} voters
+                          </p>
+                        </div>
+                      </div>
+                      <Button 
+                        className="w-full" 
+                        onClick={() => {
+                          if (confirm('Finish voting and reveal the results?')) {
+                            setVotingFinished(true)
+                            router.push('/results')
+                          }
+                        }}
+                      >
+                        <PartyPopper className="w-4 h-4 mr-2" />
+                        Finish Voting & Show Results
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
 
               {/* Local Storage Notice */}
               {useLocalStorage && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="mt-4 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-sm"
+                  className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-sm"
                 >
                   <p className="text-yellow-500">
                     Running in demo mode (localStorage). Configure Supabase for real-time sync.

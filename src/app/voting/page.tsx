@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, Suspense } from "react"
 import { motion } from "framer-motion"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { VotingCard } from "@/components/voting-card"
 import { Leaderboard } from "@/components/leaderboard"
 import { Input } from "@/components/ui/input"
@@ -15,8 +15,14 @@ import { supabase, VotingCategory } from "@/lib/supabase"
 import { setVotingFinished } from "@/lib/voting-state"
 import Link from "next/link"
 
-export default function VotingPage() {
+// Admin code for accessing finish voting controls
+const ADMIN_CODE = "vibegames2024"
+
+function VotingContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const isAdmin = searchParams.get('admin') === ADMIN_CODE
+  
   const [teams, setTeams] = useState<Team[]>([])
   const [votes, setVotes] = useState<Vote[]>([])
   const [voterName, setVoterName] = useState("")
@@ -287,8 +293,8 @@ export default function VotingPage() {
             >
               <Leaderboard teams={teams} votes={votes} />
 
-              {/* Finish Voting Button */}
-              {votes.length > 0 && (
+              {/* Finish Voting Button - Admin Only */}
+              {isAdmin && votes.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -298,7 +304,7 @@ export default function VotingPage() {
                       <div className="flex items-center gap-3 mb-3">
                         <CheckCircle2 className="w-5 h-5 text-primary" />
                         <div>
-                          <p className="font-medium">Ready to reveal results?</p>
+                          <p className="font-medium">Admin: Ready to reveal results?</p>
                           <p className="text-xs text-muted-foreground">
                             {votes.length} votes from {new Set(votes.map(v => v.voter_name.toLowerCase())).size} voters
                           </p>
@@ -338,5 +344,18 @@ export default function VotingPage() {
         )}
       </div>
     </div>
+  )
+}
+
+// Wrap with Suspense for useSearchParams
+export default function VotingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Trophy className="w-12 h-12 text-primary animate-pulse" />
+      </div>
+    }>
+      <VotingContent />
+    </Suspense>
   )
 }

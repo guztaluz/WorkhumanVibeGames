@@ -1,21 +1,42 @@
 "use client"
 
-import { motion } from "framer-motion"
+import { useRef } from "react"
+import { motion, useScroll, useTransform } from "framer-motion"
+import { ToolLogo } from "@/components/tool-logo"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Sparkles, Users, Trophy, Zap, Target, Palette, ArrowRight } from "lucide-react"
+import { Sparkles, Users, Trophy, Zap, Target, Palette, ArrowRight, UserPlus, Lightbulb } from "lucide-react"
+import Image from "next/image"
 import Link from "next/link"
+
+const AI_TOOLS = [
+  { name: "Cursor", domain: "cursor.com" },
+  { name: "Claude Code", domain: "anthropic.com" },
+  { name: "Google AI Studio", domain: "google.com" },
+  { name: "Lovable", domain: "lovable.dev" },
+  { name: "Figma", domain: "figma.com" },
+  { name: "Replit", domain: "replit.com" },
+  { name: "V0", domain: "vercel.com" },
+  { name: "Cline", domain: "cline.dev" },
+  { name: "Bolt", domain: "bolt.new" },
+  { name: "Codeium", domain: "codeium.com" },
+]
 
 const rules = [
   {
-    icon: Users,
-    title: "Form Your Team",
-    description: "Create a team with your colleagues. Give it a fun name and add all team members.",
+    icon: UserPlus,
+    title: "Create Your Profile",
+    description: "Add your name, pick an avatar, and choose your vibe coding level. The host pairs you with a teammate.",
   },
   {
-    icon: Zap,
-    title: "Pick a Crazy Idea",
-    description: "Choose from our wild project suggestions or spin the wheel for a random concept!",
+    icon: Users,
+    title: "Form Your Team",
+    description: "With your pair, create a team and give it a fun name.",
+  },
+  {
+    icon: Lightbulb,
+    title: "Select an Idea",
+    description: "Pick from our gallery of absurd ideas or spin the wheel for a random one!",
   },
   {
     icon: Palette,
@@ -24,7 +45,7 @@ const rules = [
   },
   {
     icon: Target,
-    title: "Present Your Creation",
+    title: "Present Your Creation in 2 Min",
     description: "Show off your masterpiece to the group. Make us laugh, make us think!",
   },
   {
@@ -50,31 +71,59 @@ const item = {
 }
 
 export default function Home() {
+  const heroRef = useRef<HTMLElement>(null)
+  const { scrollYProgress } = useScroll({
+    target: heroRef,
+    offset: ["start start", "end start"],
+  })
+  const statueLeftY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"])
+  const statueRightY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"])
+
   return (
     <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden py-20 px-4 sm:px-6 lg:px-8">
-        {/* Background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-accent/20 animate-gradient" />
-        
-        {/* Floating elements */}
-        <motion.div
-          animate={{ y: [0, -20, 0], rotate: [0, 5, 0] }}
-          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-32 left-10 w-20 h-20 bg-primary/20 rounded-full blur-xl"
+      {/* Hero Section - Full viewport height with floating nav */}
+      <section
+        ref={heroRef}
+        className="relative overflow-hidden min-h-screen flex flex-col justify-center px-4 sm:px-6 lg:px-8 -mt-16 pt-24"
+      >
+        {/* Background image */}
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url(/hero-bg.png)" }}
         />
-        <motion.div
-          animate={{ y: [0, 20, 0], rotate: [0, -5, 0] }}
-          transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-40 right-20 w-32 h-32 bg-accent/20 rounded-full blur-xl"
-        />
-        <motion.div
-          animate={{ y: [0, -15, 0] }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute bottom-20 left-1/4 w-24 h-24 bg-chart-3/20 rounded-full blur-xl"
+        {/* Dark overlay */}
+        <div className="absolute inset-0 bg-black/65" aria-hidden />
+        {/* Gradient overlay: black 0% to black 50% */}
+        <div
+          className="absolute inset-0 bg-gradient-to-t from-black/50 to-black/0"
+          aria-hidden
         />
 
-        <div className="relative max-w-5xl mx-auto text-center">
+        {/* Decorative statues with parallax - absolute positioned, don't affect layout */}
+        <motion.div
+          style={{ y: statueLeftY }}
+          className="absolute left-0 bottom-0 top-0 w-[min(32vw,420px)] flex items-end justify-center pointer-events-none z-[5]"
+          aria-hidden
+        >
+          <img
+            src="/statue-left.png"
+            alt=""
+            className="h-[95vh] w-auto object-contain object-bottom"
+          />
+        </motion.div>
+        <motion.div
+          style={{ y: statueRightY }}
+          className="absolute right-0 bottom-0 top-0 w-[min(32vw,420px)] flex items-end justify-center pointer-events-none z-[5]"
+          aria-hidden
+        >
+          <img
+            src="/statue-right.png"
+            alt=""
+            className="h-[95vh] w-auto object-contain object-bottom"
+          />
+        </motion.div>
+
+        <div className="relative z-10 max-w-5xl mx-auto text-center hero-content">
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -85,20 +134,30 @@ export default function Home() {
             <span className="text-sm font-medium text-primary">Product Design Challenge</span>
           </motion.div>
 
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.05 }}
+            className="text-[25px] mb-6 font-thin tracking-wide uppercase"
+            style={{ fontFamily: "Times, serif", color: "rgba(228, 214, 205, 1)" }}
+          >
+            Welcome to the Workhuman
+          </motion.p>
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-5xl sm:text-7xl font-bold mb-6"
+            className="font-display font-bold mb-6"
           >
-            <span className="gradient-text">Vibe Games</span>
+            <span className="gradient-text font-thin text-5xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[120px] 2xl:text-[140px]">Vibe Games</span>
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-xl sm:text-2xl text-muted-foreground mb-8 max-w-2xl mx-auto"
+            className="text-xl sm:text-2xl mb-8 max-w-2xl mx-auto"
+            style={{ fontFamily: '"Times New Roman", serif', color: "rgba(228, 214, 205, 1)" }}
           >
             Where ridiculous ideas meet AI-powered creativity. Build absurd products, vote on the best designs, and have fun doing it!
           </motion.p>
@@ -135,7 +194,7 @@ export default function Home() {
             transition={{ duration: 0.5 }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">What is Vibe Games?</h2>
+            <h2 className="font-display text-[55px] font-thin mb-4">What are the Vibe Games?</h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Vibe Games is a fun team activity where product designers compete to create 
               the most creative (and ridiculous) vibe-coded projects. Think hackathon meets 
@@ -196,8 +255,8 @@ export default function Home() {
             transition={{ duration: 0.5 }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">How It Works</h2>
-            <p className="text-lg text-muted-foreground">
+            <h2 className="font-display text-[56px] font-thin mb-4">How It Works</h2>
+            <p className="text-2xl text-muted-foreground max-w-2xl mx-auto" style={{ fontFamily: "Times, serif" }}>
               Follow these simple steps to participate in the Vibe Games
             </p>
           </motion.div>
@@ -207,30 +266,92 @@ export default function Home() {
             initial="hidden"
             whileInView="show"
             viewport={{ once: true }}
-            className="grid gap-6"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
           >
             {rules.map((rule, index) => (
               <motion.div key={rule.title} variants={item}>
-                <Card className="glass border-border/50 hover:border-primary/50 transition-colors">
-                  <CardContent className="p-6">
-                    <div className="flex items-start gap-6">
-                      <div className="flex-shrink-0">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-lg">
-                          {index + 1}
-                        </div>
-                      </div>
-                      <div className="flex-grow">
-                        <div className="flex items-center gap-3 mb-2">
-                          <rule.icon className="w-5 h-5 text-primary" />
-                          <h3 className="font-semibold text-lg">{rule.title}</h3>
-                        </div>
-                        <p className="text-muted-foreground">{rule.description}</p>
-                      </div>
+                <Card className="glass border-border/50 hover:border-primary/50 transition-colors h-full relative">
+                  <div className="absolute top-4 left-4 w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-lg z-10">
+                    {index + 1}
+                  </div>
+                  <CardContent className="p-5">
+                    <div className="flex flex-col items-center text-center">
+                      <rule.icon className="w-6 h-6 text-primary mb-2" />
+                      <h3 className="font-semibold text-base mb-1">{rule.title}</h3>
+                      <p className="text-muted-foreground text-sm">{rule.description}</p>
                     </div>
                   </CardContent>
                 </Card>
               </motion.div>
             ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* AI Tools - Collaborate and learn together */}
+      <section className="py-20 overflow-hidden">
+        <div className="w-full">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="text-center mb-12 px-4 sm:px-6"
+          >
+            <h2 className="font-display text-3xl sm:text-4xl font-thin mb-4">Build with Your Favorite AI Tools</h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Use Cursor, Claude, Replit, V0, Lovable, or any tool you&apos;re comfortable with. The idea is to work together, collaborate, and learn from each other—no restrictions, just vibes.
+            </p>
+          </motion.div>
+
+          <div className="relative overflow-hidden w-screen left-1/2 -translate-x-1/2">
+            <div className="flex gap-10 animate-marquee w-fit py-4">
+              {[...AI_TOOLS, ...AI_TOOLS].map((tool, i) => (
+                <a
+                  key={`${tool.name}-${i}`}
+                  href={`https://${tool.domain}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-4 shrink-0 px-6 py-4 rounded-xl border border-border/50 bg-card/80 hover:border-primary/50 hover:bg-card transition-colors"
+                >
+                  <ToolLogo name={tool.name} domain={tool.domain} size="lg" />
+                  <span className="font-medium text-base whitespace-nowrap">{tool.name}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Be Ruthless - Voting Section */}
+      <section className="relative min-h-[600px] sm:min-h-[700px] flex items-center justify-center overflow-hidden">
+        <Image
+          src="/be-ruthless.png"
+          alt=""
+          fill
+          sizes="100vw"
+          className="object-cover"
+          priority={false}
+        />
+        <div className="absolute inset-0 bg-black/60" />
+        <div className="relative z-10 py-20 px-4 sm:px-6 lg:px-8 w-full max-w-5xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="text-center"
+          >
+            <h2 className="font-display text-6xl sm:text-8xl md:text-9xl font-thin mb-8 text-white drop-shadow-lg">
+              Be Ruthless
+            </h2>
+            <p className="text-lg sm:text-xl text-white/90 max-w-2xl mx-auto mb-6">
+              After each team presents in 2 minutes, everyone votes. No mercy, no participation trophies—just honest feedback.
+            </p>
+            <p className="text-white/80 max-w-2xl mx-auto">
+              Rate each project on UI Design, UX Flow, Innovation, Viability, Accessibility, and Fun Factor. 
+              Give 1–5 stars per category. You can&apos;t vote for your own team. Only the best ideas rise to the top.
+            </p>
           </motion.div>
         </div>
       </section>
@@ -247,9 +368,9 @@ export default function Home() {
           <Card className="glass border-primary/30 overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/10 to-chart-3/10 animate-gradient" />
             <CardContent className="relative p-12">
-              <h2 className="text-3xl font-bold mb-4">Ready to Vibe?</h2>
+              <h2 className="font-display text-3xl font-bold mb-4">Ready to Vibe?</h2>
               <p className="text-muted-foreground mb-8">
-                Create your team, pick a crazy idea, and let the games begin!
+                Create your profile, form your team, pick an idea, and let the games begin!
               </p>
               <Link href="/pairing">
                 <Button size="lg" className="group">

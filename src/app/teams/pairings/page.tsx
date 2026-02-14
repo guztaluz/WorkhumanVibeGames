@@ -141,7 +141,7 @@ export default function PairingsPage() {
           <Card className="card-minimal border-2 border-dashed border-border">
             <CardContent className="py-16">
               <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-              <h2 className="text-xl font-bold mb-2">Need more profiles</h2>
+              <h2 className="font-display text-xl font-bold mb-2">Need more profiles</h2>
               <p className="text-muted-foreground mb-6">
                 Add at least 2 profiles before creating teams.
               </p>
@@ -167,7 +167,7 @@ export default function PairingsPage() {
             <Users className="w-4 h-4 text-primary" />
             <span className="text-sm font-medium text-primary">Step 2</span>
           </div>
-          <h1 className="font-serif text-4xl font-bold tracking-tight mb-4">
+          <h1 className="font-display text-4xl font-bold tracking-tight mb-4">
             Create Teams
           </h1>
           <p className="text-lg text-muted-foreground">
@@ -273,7 +273,7 @@ export default function PairingsPage() {
                             const full = formatIdea(idea)
                             return (
                               <option key={idea.id} value={full}>
-                                {idea.title}
+                                {idea.emoji ? `${idea.emoji} ${idea.title}` : idea.title}
                               </option>
                             )
                           })}

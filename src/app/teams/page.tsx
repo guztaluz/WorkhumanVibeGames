@@ -193,7 +193,7 @@ function TeamsPageContent() {
             <Users className="w-4 h-4 text-primary" />
             <span className="text-sm font-medium text-primary">Team Setup</span>
           </div>
-          <h1 className="text-4xl font-bold mb-4">Create Your Team</h1>
+          <h1 className="font-display text-4xl font-bold mb-4">Create Your Team</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Form your squad, pick a ridiculous project idea, and get ready to vibe code your way to victory!
           </p>
@@ -236,7 +236,7 @@ function TeamsPageContent() {
             className="space-y-6"
           >
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold flex items-center gap-2">
+              <h2 className="font-display text-2xl font-bold flex items-center gap-2">
                 <Users className="w-6 h-6 text-primary" />
                 Teams ({teams.length})
               </h2>

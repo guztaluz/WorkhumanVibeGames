@@ -194,7 +194,7 @@ function ResultsContent() {
             <PartyPopper className="w-5 h-5 text-yellow-500" />
           </motion.div>
           
-          <h1 className="text-4xl sm:text-5xl font-bold mb-4">
+          <h1 className="font-display text-4xl sm:text-5xl font-bold mb-4">
             <span className="gradient-text">The Results Are In!</span>
           </h1>
         </motion.div>
@@ -223,7 +223,7 @@ function ResultsContent() {
                       <Crown className="w-16 h-16 text-yellow-500 mb-4" />
                     </motion.div>
                     
-                    <h2 className="text-2xl font-bold text-yellow-500 mb-6">WINNER</h2>
+                    <h2 className="font-display text-2xl font-bold text-yellow-500 mb-6">WINNER</h2>
                     
                     {/* Avatar */}
                     <motion.div
@@ -246,7 +246,7 @@ function ResultsContent() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.5 }}
-                      className="text-3xl sm:text-4xl font-bold mt-6 mb-2"
+                      className="font-display text-3xl sm:text-4xl font-bold mt-6 mb-2"
                     >
                       {winner.team.name}
                     </motion.h3>
@@ -349,7 +349,7 @@ function ResultsContent() {
               transition={{ duration: 0.5 }}
               className="mb-10"
             >
-              <h3 className="text-xl font-bold mb-4 text-muted-foreground">Other Participants</h3>
+              <h3 className="font-display text-xl font-bold mb-4 text-muted-foreground">Other Participants</h3>
               <div className="space-y-3">
                 {others.map((item, index) => (
                   <motion.div
@@ -396,7 +396,7 @@ function ResultsContent() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="mb-12"
             >
-              <h3 className="text-xl font-bold mb-4 text-muted-foreground">
+              <h3 className="font-display text-xl font-bold mb-4 text-muted-foreground">
                 Best in Category
               </h3>
               <div className="grid grid-cols-3 gap-4">

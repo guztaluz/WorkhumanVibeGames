@@ -358,8 +358,8 @@ function PairingPageContent() {
             <UserPlus className="w-4 h-4 text-primary" />
             <span className="text-sm font-medium text-primary">Pairing</span>
           </div>
-          <h1 className="font-serif text-4xl font-bold tracking-tight mb-4">
-            Join the group
+          <h1 className="font-display font-thin text-[55px] tracking-tight mb-4">
+            who are you?
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Add your name, pick an avatar, and choose your vibe coding level. Everyone will see who&apos;s here in real time!

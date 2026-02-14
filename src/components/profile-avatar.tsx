@@ -99,7 +99,7 @@ export function ProfileAvatar({
 
   return (
     <div className={cn("space-y-4", className)}>
-      <div className="flex items-start gap-4">
+      <div className="flex flex-col items-center">
         {emoji ? (
           <div
             className={cn(
@@ -120,8 +120,8 @@ export function ProfileAvatar({
             </AvatarFallback>
           </Avatar>
         )}
-        <div className="flex-1 space-y-2">
-          <div className="flex gap-2">
+        <div className="w-full mt-4 space-y-2">
+          <div className="flex justify-center gap-2 flex-wrap">
             {modes.map((m) => (
               <Button
                 key={m.id}
@@ -171,8 +171,8 @@ export function ProfileAvatar({
             />
           )}
           {avatarMode === "emoji" && (
-            <div className="flex gap-2">
-              <div ref={pickerRef} className="relative flex-1">
+            <div className="flex gap-2 w-full flex-col sm:flex-row">
+              <div ref={pickerRef} className="relative flex-1 min-w-0">
                 <Button
                   type="button"
                   variant="outline"

@@ -53,7 +53,7 @@ export function TeamCard({ team, index = 0, profiles = [] }: TeamCardProps) {
             </Avatar>
             
             <div className="flex-grow min-w-0">
-              <h3 className="font-bold text-lg mb-2 truncate">{team.name}</h3>
+              <h3 className="font-bold text-xl mb-2 truncate">{team.name}</h3>
               
               <div className="flex items-center gap-2 text-muted-foreground text-sm mb-3">
                 <Users className="w-4 h-4 shrink-0" />

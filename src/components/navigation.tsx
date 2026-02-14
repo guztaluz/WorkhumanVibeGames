@@ -12,13 +12,13 @@ import { getAdminMode, setAdminMode, subscribeToAdminMode } from "@/lib/admin-st
 import { resetVoting } from "@/lib/voting-state"
 
 const baseNavItems = [
-  { href: "/", label: "Intro", icon: Sparkles },
-  { href: "/pairing", label: "Pairing", icon: UserPlus },
-  { href: "/teams", label: "Teams", icon: Users },
-  { href: "/voting", label: "Voting", icon: Trophy },
+  { href: "/", label: "Welcome", icon: Sparkles, step: 1 },
+  { href: "/pairing", label: "Pairing", icon: UserPlus, step: 2 },
+  { href: "/teams", label: "Teams", icon: Users, step: 3 },
+  { href: "/voting", label: "Voting", icon: Trophy, step: 4 },
 ]
 
-const resultsNavItem = { href: "/results", label: "Results", icon: Crown }
+const resultsNavItem = { href: "/results", label: "Results", icon: Crown, step: 5 }
 
 export function Navigation() {
   const pathname = usePathname()
@@ -227,90 +227,11 @@ export function Navigation() {
       initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="fixed top-0 left-0 right-0 z-50 glass"
+      className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-fit glass rounded-2xl shadow-xl border border-white/10 px-2 py-2"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center gap-1">
-            <Link href="/" className="flex items-center gap-2">
-              <motion.div
-                whileHover={{ rotate: 360 }}
-                transition={{ duration: 0.5 }}
-                className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center"
-              >
-                <Sparkles className="w-5 h-5 text-white" />
-              </motion.div>
-              <span className="font-bold text-xl gradient-text">Vibe Games</span>
-            </Link>
-            <div ref={adminDropdownRef} className="relative ml-1">
-              <button
-                type="button"
-                onClick={() => setAdminDropdownOpen(!adminDropdownOpen)}
-                className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors opacity-60 hover:opacity-100"
-                aria-label="Admin settings"
-              >
-                <Settings2 className="w-4 h-4" />
-              </button>
-              {adminDropdownOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="absolute left-0 top-full mt-1 py-2 min-w-[200px] rounded-lg border border-border bg-popover shadow-lg z-50"
-                >
-                  <div className="px-4 py-2 border-b border-border">
-                    <p className="text-xs font-medium text-muted-foreground">Admin mode</p>
-                    <button
-                      type="button"
-                      onClick={handleAdminToggle}
-                      className={cn(
-                        "mt-2 w-full py-2 px-3 rounded-md text-sm font-medium transition-colors",
-                        adminMode
-                          ? "bg-amber-500/20 text-amber-600 dark:text-amber-400"
-                          : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
-                      )}
-                    >
-                      {adminMode ? "On — Click to turn off & refresh" : "Off — Click to turn on"}
-                    </button>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAdminDropdownOpen(false)
-                      handleAddFakeProfiles()
-                    }}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-secondary/80 transition-colors"
-                  >
-                    <UserPlus className="w-4 h-4" />
-                    Add 20 fake profiles
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAdminDropdownOpen(false)
-                      handleAddFakeTeams()
-                    }}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-secondary/80 transition-colors"
-                  >
-                    <UsersRound className="w-4 h-4" />
-                    Add fake teams
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAdminDropdownOpen(false)
-                      handleResetAllData()
-                    }}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Reset all data
-                  </button>
-                </motion.div>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1">
+      <div className="flex items-center justify-center h-10 relative">
+          {/* Centered nav items */}
+          <div className="flex items-center gap-3">
             <AnimatePresence mode="popLayout">
               {navItems.map((item) => {
                 const isActive = pathname === item.href
@@ -333,17 +254,16 @@ export function Navigation() {
                       isDisabled && "opacity-50 pointer-events-none cursor-not-allowed"
                     )}
                   >
-                    <Icon className={cn("w-4 h-4", isResultsTab && !isActive && "text-yellow-500")} />
-                    <span className="font-medium">{item.label}</span>
+                    <Icon className={cn("w-4 h-4 shrink-0", isResultsTab && !isActive && "text-yellow-500")} />
+                    <span className="font-medium">{item.step}. {item.label}</span>
 
                     {isActive && !isDisabled && (
                       <motion.div
-                        layoutId="activeNav"
+                        initial={false}
                         className={cn(
                           "absolute inset-0 rounded-lg -z-10",
                           isResultsTab ? "bg-gradient-to-r from-yellow-500 to-amber-500" : "bg-primary"
                         )}
-                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                       />
                     )}
                   </motion.div>
@@ -369,8 +289,75 @@ export function Navigation() {
               })}
             </AnimatePresence>
           </div>
+
+          {/* Admin toggle */}
+          <div ref={adminDropdownRef} className="ml-2 pl-2 border-l border-border">
+            <button
+              type="button"
+              onClick={() => setAdminDropdownOpen(!adminDropdownOpen)}
+              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors opacity-60 hover:opacity-100"
+              aria-label="Admin settings"
+            >
+              <Settings2 className="w-4 h-4" />
+            </button>
+            {adminDropdownOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="absolute right-0 top-full mt-1 py-2 min-w-[200px] rounded-lg border border-border bg-popover shadow-lg z-50"
+              >
+                <div className="px-4 py-2 border-b border-border">
+                  <p className="text-xs font-medium text-muted-foreground">Admin mode</p>
+                  <button
+                    type="button"
+                    onClick={handleAdminToggle}
+                    className={cn(
+                      "mt-2 w-full py-2 px-3 rounded-md text-sm font-medium transition-colors",
+                      adminMode
+                        ? "bg-amber-500/20 text-amber-600 dark:text-amber-400"
+                        : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
+                    )}
+                  >
+                    {adminMode ? "On — Click to turn off & refresh" : "Off — Click to turn on"}
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAdminDropdownOpen(false)
+                    handleAddFakeProfiles()
+                  }}
+                  className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-secondary/80 transition-colors"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Add 20 fake profiles
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAdminDropdownOpen(false)
+                    handleAddFakeTeams()
+                  }}
+                  className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-secondary/80 transition-colors"
+                >
+                  <UsersRound className="w-4 h-4" />
+                  Add fake teams
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAdminDropdownOpen(false)
+                    handleResetAllData()
+                  }}
+                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Reset all data
+                </button>
+              </motion.div>
+            )}
+          </div>
         </div>
-      </div>
     </motion.nav>
   )
 }

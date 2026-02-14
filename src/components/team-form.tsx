@@ -79,7 +79,7 @@ export function TeamForm({ onSubmit, selectedIdea, onSelectIdea, initialMemberPr
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Team Avatar - same as Profile: upload, URL, or emoji */}
+          {/* Team Avatar - centered, controls below */}
           <div className="space-y-2">
             <Label>Team Avatar (optional)</Label>
             <ProfileAvatar
@@ -91,15 +91,15 @@ export function TeamForm({ onSubmit, selectedIdea, onSelectIdea, initialMemberPr
             />
           </div>
 
-          {/* Team Name */}
+          {/* Team Name - bigger */}
           <div className="space-y-2">
-            <Label htmlFor="teamName">Team Name *</Label>
+            <Label htmlFor="teamName" className="text-base">Team Name *</Label>
             <Input
               id="teamName"
               placeholder="Enter a creative team name..."
               value={teamName}
               onChange={(e) => setTeamName(e.target.value)}
-              className="bg-secondary/50"
+              className="bg-secondary/50 text-lg h-11"
             />
           </div>
 
@@ -148,11 +148,14 @@ export function TeamForm({ onSubmit, selectedIdea, onSelectIdea, initialMemberPr
             </div>
           )}
 
-          {/* Idea Generator - Random + Pick from ideas */}
-          <IdeaGenerator
-            onSelectIdea={onSelectIdea}
-            selectedIdea={selectedIdea}
-          />
+          {/* Pick an idea */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Pick an idea:</h3>
+            <IdeaGenerator
+              onSelectIdea={onSelectIdea}
+              selectedIdea={selectedIdea}
+            />
+          </div>
 
           {/* Error Message */}
           {error && (

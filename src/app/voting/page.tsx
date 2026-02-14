@@ -255,7 +255,7 @@ function VotingContent() {
             <Trophy className="w-4 h-4 text-primary" />
             <span className="text-sm font-medium text-primary">Live Voting</span>
           </div>
-          <h1 className="text-4xl font-bold mb-4">Vote for the Best Projects</h1>
+          <h1 className="font-display text-4xl font-bold mb-4">Vote for the Best Projects</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Rate each team across multiple categories. The leaderboard updates in real-time!
           </p>
@@ -320,7 +320,7 @@ function VotingContent() {
               className="lg:col-span-2 space-y-6"
             >
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold">Teams ({teams.length})</h2>
+                <h2 className="font-display text-2xl font-bold">Teams ({teams.length})</h2>
                 <Button variant="ghost" size="sm" onClick={loadData}>
                   <RefreshCw className="w-4 h-4" />
                 </Button>

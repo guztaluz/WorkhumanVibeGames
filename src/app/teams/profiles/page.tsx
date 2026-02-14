@@ -305,7 +305,7 @@ function ProfilesPageContent() {
             className="mb-8 rounded-xl border-2 border-primary/30 bg-primary/10 p-6 text-center"
           >
             <PartyPopper className="mx-auto mb-3 size-12 text-primary" />
-            <h2 className="text-xl font-bold mb-2">Profiles complete!</h2>
+            <h2 className="font-display text-xl font-bold mb-2">Profiles complete!</h2>
             <p className="text-muted-foreground mb-4">
               Everyone&apos;s in. Head to pairings to create your teams!
             </p>
@@ -327,7 +327,7 @@ function ProfilesPageContent() {
             <User className="w-4 h-4 text-primary" />
             <span className="text-sm font-medium text-primary">Step 1</span>
           </div>
-          <h1 className="font-serif text-4xl font-bold tracking-tight mb-4">
+          <h1 className="font-display text-4xl font-bold tracking-tight mb-4">
             Create Your Profile
           </h1>
           <p className="text-lg text-muted-foreground">
@@ -360,13 +360,13 @@ function ProfilesPageContent() {
                   />
 
                   <div className="space-y-2">
-                    <Label htmlFor="name">Name *</Label>
+                    <Label htmlFor="name" className="text-base">Name *</Label>
                     <Input
                       id="name"
                       placeholder="Your name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="bg-secondary/50"
+                      className="bg-secondary/50 text-lg h-11"
                     />
                   </div>
 
@@ -426,7 +426,7 @@ function ProfilesPageContent() {
             transition={{ delay: 0.2 }}
           >
             {profiles.length > 0 && (
-              <h2 className="text-xl font-bold mb-4">
+              <h2 className="font-display text-xl font-bold mb-4">
                 Profiles ({profiles.length})
               </h2>
             )}
@@ -454,7 +454,7 @@ function ProfilesPageContent() {
                   >
                     <ProfileDisplay profile={profile} />
                     <div className="flex-grow min-w-0">
-                      <p className="font-medium truncate">{profile.name}</p>
+                      <p className="text-lg font-semibold truncate">{profile.name}</p>
                       <p className="text-sm text-muted-foreground">
                         {SKILL_OPTIONS.find((o) => o.value === profile.skill_level)?.label}
                       </p>

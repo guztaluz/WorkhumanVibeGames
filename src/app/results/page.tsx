@@ -1,17 +1,23 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Crown, Trophy, Medal, Award, Star, PartyPopper, RotateCcw } from "lucide-react"
-import { Team, Vote } from "@/types/database"
+import { Team, Vote, Profile } from "@/types/database"
 import { supabase, VOTING_CATEGORIES } from "@/lib/supabase"
 import { Confetti } from "@/components/confetti"
 import { resetVoting } from "@/lib/voting-state"
-import { useRouter } from "next/navigation"
+import { getAdminMode, subscribeToAdminMode } from "@/lib/admin-state"
+import { getEmojiFromAvatar, getEmojiBgFromAvatar, isEmojiAvatar } from "@/components/profile-avatar"
+import { cn } from "@/lib/utils"
+
+const ADMIN_CODE = "vibegames2024"
+const PROFILES_STORAGE_KEY = "vibe-games-profiles"
 
 interface TeamScore {
   team: Team
@@ -21,13 +27,24 @@ interface TeamScore {
   categoryScores: Record<string, { total: number; count: number; average: number }>
 }
 
-export default function ResultsPage() {
+function ResultsContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const [adminFromToggle, setAdminFromToggle] = useState(false)
   const [teams, setTeams] = useState<Team[]>([])
   const [votes, setVotes] = useState<Vote[]>([])
+  const [profiles, setProfiles] = useState<Profile[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showConfetti, setShowConfetti] = useState(true)
   const [revealStage, setRevealStage] = useState(0)
+
+  const isAdmin = searchParams.get("admin") === ADMIN_CODE || adminFromToggle
+
+  useEffect(() => {
+    setAdminFromToggle(getAdminMode())
+    const unsub = subscribeToAdminMode(setAdminFromToggle)
+    return unsub
+  }, [])
 
   useEffect(() => {
     loadData()
@@ -49,19 +66,26 @@ export default function ResultsPage() {
   const loadData = async () => {
     setIsLoading(true)
     try {
-      const [teamsResult, votesResult] = await Promise.all([
-        supabase.from('teams').select('*'),
+      const [teamsResult, votesResult, profilesResult] = await Promise.all([
+        supabase.from('teams').select('*').order('created_at', { ascending: false }),
         supabase.from('votes').select('*'),
+        supabase.from('profiles').select('*'),
       ])
 
-      if (teamsResult.data) setTeams(teamsResult.data)
-      if (votesResult.data) setVotes(votesResult.data)
+      if (teamsResult.error) throw teamsResult.error
+      if (votesResult.error) throw votesResult.error
+      if (profilesResult.error) throw profilesResult.error
+
+      setTeams(teamsResult.data || [])
+      setVotes(votesResult.data || [])
+      setProfiles((profilesResult.data as Profile[]) || [])
     } catch {
-      // Fallback to localStorage
       const storedTeams = localStorage.getItem('vibe-games-teams')
       const storedVotes = localStorage.getItem('vibe-games-votes')
+      const storedProfiles = localStorage.getItem(PROFILES_STORAGE_KEY)
       if (storedTeams) setTeams(JSON.parse(storedTeams))
       if (storedVotes) setVotes(JSON.parse(storedVotes))
+      if (storedProfiles) setProfiles(JSON.parse(storedProfiles))
     } finally {
       setIsLoading(false)
     }
@@ -102,6 +126,20 @@ export default function ResultsPage() {
   const runnerUp = sortedTeams[1]
   const thirdPlace = sortedTeams[2]
   const others = sortedTeams.slice(3)
+
+  // Category winners: team with highest average in each category (min 1 vote)
+  const categoryWinners = VOTING_CATEGORIES.map((cat) => {
+    let best: { team: Team; average: number } | null = null
+    for (const item of teamScores) {
+      const catScore = item.categoryScores[cat.id]
+      if (catScore?.count >= 1 && catScore.average > 0) {
+        if (!best || catScore.average > best.average) {
+          best = { team: item.team, average: catScore.average }
+        }
+      }
+    }
+    return { category: cat, winner: best }
+  })
 
   const getInitials = (name: string) => 
     name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
@@ -235,23 +273,6 @@ export default function ResultsPage() {
                         {winner.team.selected_idea}
                       </motion.p>
                     )}
-                    
-                    {/* Category Breakdown */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.8 }}
-                      className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-3 w-full max-w-lg"
-                    >
-                      {VOTING_CATEGORIES.map(cat => (
-                        <div key={cat.id} className="text-center p-3 rounded-lg bg-background/50">
-                          <p className="text-xs text-muted-foreground">{cat.name}</p>
-                          <p className="font-bold text-lg">
-                            {winner.categoryScores[cat.id]?.average.toFixed(1) || '-'}
-                          </p>
-                        </div>
-                      ))}
-                    </motion.div>
                   </div>
                 </CardContent>
               </Card>
@@ -326,6 +347,7 @@ export default function ResultsPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5 }}
+              className="mb-10"
             >
               <h3 className="text-xl font-bold mb-4 text-muted-foreground">Other Participants</h3>
               <div className="space-y-3">
@@ -365,19 +387,119 @@ export default function ResultsPage() {
           )}
         </AnimatePresence>
 
-        {/* Reset Button */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 3 }}
-          className="mt-12 text-center"
-        >
-          <Button variant="outline" onClick={handleReset}>
-            <RotateCcw className="w-4 h-4 mr-2" />
-            Start New Session
-          </Button>
-        </motion.div>
+        {/* Category Winners - smaller section */}
+        <AnimatePresence>
+          {revealStage >= 3 && categoryWinners.some((c) => c.winner) && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="mb-12"
+            >
+              <h3 className="text-xl font-bold mb-4 text-muted-foreground">
+                Best in Category
+              </h3>
+              <div className="grid grid-cols-3 gap-4">
+                {categoryWinners.map(({ category, winner: catWinner }) => {
+                  const memberProfiles = catWinner
+                    ? catWinner.team.members
+                        .map((name) => profiles.find((p) => p.name === name))
+                        .filter((p): p is Profile => !!p)
+                    : []
+                  return (
+                    <Card
+                      key={category.id}
+                      className="border-border/50 bg-secondary/20"
+                    >
+                      <CardContent className="p-5">
+                        <p className="text-sm font-medium text-muted-foreground mb-2">
+                          Best {category.name}
+                        </p>
+                        {catWinner ? (
+                          <>
+                            <p className="font-semibold text-base truncate" title={catWinner.team.name}>
+                              {catWinner.team.name}
+                            </p>
+                            <p className="text-sm text-primary mt-1">
+                              {catWinner.average.toFixed(1)} avg
+                            </p>
+                            {/* Team members - small avatars + names */}
+                            <div className="mt-3 pt-3 border-t border-border/50">
+                              <div className="flex flex-wrap items-center gap-2">
+                                {(memberProfiles.length > 0 ? memberProfiles : catWinner.team.members).map((pOrName, i) => {
+                                  const p = typeof pOrName === "string" ? null : pOrName
+                                  const name = typeof pOrName === "string" ? pOrName : pOrName.name
+                                  const emoji = p ? getEmojiFromAvatar(p.avatar_url) : null
+                                  const emojiBg = p ? getEmojiBgFromAvatar(p.avatar_url) : null
+                                  const imageSrc = p && p.avatar_url && !isEmojiAvatar(p.avatar_url) ? p.avatar_url : undefined
+                                  return (
+                                    <div key={i} className="flex items-center gap-1.5">
+                                      {emoji ? (
+                                        <div
+                                          className={cn(
+                                            "flex size-6 shrink-0 items-center justify-center rounded-full text-xs border border-border",
+                                            !emojiBg && "bg-card"
+                                          )}
+                                          style={emojiBg ? { backgroundColor: `#${emojiBg}` } : undefined}
+                                        >
+                                          {emoji}
+                                        </div>
+                                      ) : (
+                                        <Avatar className="size-6 shrink-0 border border-border">
+                                          <AvatarImage src={imageSrc} alt={name} />
+                                          <AvatarFallback className="bg-primary/20 text-[10px] text-primary">
+                                            {name.slice(0, 2).toUpperCase()}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                      )}
+                                      <span className="text-xs text-muted-foreground truncate max-w-[60px]">
+                                        {name}
+                                      </span>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">—</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Reset Button - Admin only */}
+        {isAdmin && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 3 }}
+            className="mt-12 text-center"
+          >
+            <Button variant="outline" onClick={handleReset}>
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Start New Session
+            </Button>
+          </motion.div>
+        )}
       </div>
     </div>
+  )
+}
+
+export default function ResultsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Trophy className="w-12 h-12 text-primary animate-pulse" />
+      </div>
+    }>
+      <ResultsContent />
+    </Suspense>
   )
 }

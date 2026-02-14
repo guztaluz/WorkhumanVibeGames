@@ -4,6 +4,23 @@
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Profiles table (for pairing - names, avatars, skill levels)
+CREATE TABLE IF NOT EXISTS profiles (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  avatar_url TEXT,
+  skill_level TEXT NOT NULL DEFAULT 'just_starting' CHECK (skill_level IN ('just_starting', 'getting_hang', 'master')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Event state (current phase: profiles, pairings, voting)
+CREATE TABLE IF NOT EXISTS event_state (
+  id TEXT PRIMARY KEY DEFAULT 'default',
+  current_phase TEXT NOT NULL DEFAULT 'profiles' CHECK (current_phase IN ('profiles', 'pairings', 'voting')),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+INSERT INTO event_state (id, current_phase) VALUES ('default', 'profiles') ON CONFLICT (id) DO NOTHING;
+
 -- Teams table
 CREATE TABLE IF NOT EXISTS teams (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -36,9 +53,17 @@ CREATE TABLE IF NOT EXISTS votes (
 );
 
 -- Enable Row Level Security
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE event_state ENABLE ROW LEVEL SECURITY;
 ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE project_ideas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE votes ENABLE ROW LEVEL SECURITY;
+
+-- Policies for profiles and event_state
+CREATE POLICY "Allow all operations on profiles" ON profiles
+  FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all operations on event_state" ON event_state
+  FOR ALL USING (true) WITH CHECK (true);
 
 -- Policies for teams (allow all operations for now - simple setup)
 CREATE POLICY "Allow all operations on teams" ON teams
@@ -52,9 +77,11 @@ CREATE POLICY "Allow read on project_ideas" ON project_ideas
 CREATE POLICY "Allow all operations on votes" ON votes
   FOR ALL USING (true) WITH CHECK (true);
 
--- Enable realtime for votes table
+-- Enable realtime
 ALTER PUBLICATION supabase_realtime ADD TABLE votes;
 ALTER PUBLICATION supabase_realtime ADD TABLE teams;
+ALTER PUBLICATION supabase_realtime ADD TABLE profiles;
+ALTER PUBLICATION supabase_realtime ADD TABLE event_state;
 
 -- Seed project ideas
 INSERT INTO project_ideas (title, description, is_random_pool) VALUES

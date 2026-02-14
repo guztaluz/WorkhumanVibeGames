@@ -109,7 +109,7 @@ export default function Home() {
             transition={{ duration: 0.5, delay: 0.3 }}
             className="flex flex-col sm:flex-row gap-4 justify-center"
           >
-            <Link href="/teams">
+            <Link href="/pairing">
               <Button size="lg" className="group animate-pulse-glow">
                 Get Started
                 <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -251,9 +251,9 @@ export default function Home() {
               <p className="text-muted-foreground mb-8">
                 Create your team, pick a crazy idea, and let the games begin!
               </p>
-              <Link href="/teams">
+              <Link href="/pairing">
                 <Button size="lg" className="group">
-                  Create Your Team
+                  Join & Create Pairs
                   <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>

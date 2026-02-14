@@ -5,43 +5,54 @@ import { motion } from "framer-motion"
 import { useRouter, useSearchParams } from "next/navigation"
 import { VotingCard } from "@/components/voting-card"
 import { Leaderboard } from "@/components/leaderboard"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Trophy, User, RefreshCw, AlertCircle, CheckCircle2, PartyPopper, Trash2, ShieldAlert } from "lucide-react"
-import { Team, Vote } from "@/types/database"
+import { Trophy, RefreshCw, CheckCircle2, PartyPopper, Trash2, ShieldAlert } from "lucide-react"
+import { Team, Vote, Profile } from "@/types/database"
 import { supabase, VotingCategory } from "@/lib/supabase"
 import { setVotingFinished, resetVoting } from "@/lib/voting-state"
+import { getEventPhase, subscribeToEventPhase } from "@/lib/event-state"
+import { getAdminMode, subscribeToAdminMode } from "@/lib/admin-state"
 import Link from "next/link"
 
-// Admin code for accessing finish voting controls
 const ADMIN_CODE = "vibegames2024"
 const RESET_PASSWORD = "resetvibes"
+const MY_PROFILE_ID_KEY = "vibe-games-my-profile-id"
+const PROFILES_STORAGE_KEY = "vibe-games-profiles"
 
 function VotingContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const isAdmin = searchParams.get('admin') === ADMIN_CODE
+  const [adminFromToggle, setAdminFromToggle] = useState(false)
+  useEffect(() => {
+    setAdminFromToggle(getAdminMode())
+    const unsub = subscribeToAdminMode(setAdminFromToggle)
+    return unsub
+  }, [])
+  const isAdmin = searchParams.get("admin") === ADMIN_CODE || adminFromToggle
   
   const [teams, setTeams] = useState<Team[]>([])
   const [votes, setVotes] = useState<Vote[]>([])
-  const [voterName, setVoterName] = useState("")
-  const [savedVoterName, setSavedVoterName] = useState("")
+  const [profiles, setProfiles] = useState<Profile[]>([])
+  const [myProfileId, setMyProfileId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [useLocalStorage, setUseLocalStorage] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
+  const [eventPhase, setEventPhase] = useState<string>("profiles")
 
-  // Load data on mount
+  useEffect(() => {
+    getEventPhase().then(setEventPhase)
+    const unsub = subscribeToEventPhase(setEventPhase)
+    return unsub
+  }, [])
+
+  useEffect(() => {
+    const stored = typeof window !== "undefined" ? localStorage.getItem(MY_PROFILE_ID_KEY) : null
+    if (stored) setMyProfileId(stored)
+  }, [])
+
   useEffect(() => {
     loadData()
-    
-    // Load saved voter name from localStorage
-    const saved = localStorage.getItem('vibe-games-voter-name')
-    if (saved) {
-      setVoterName(saved)
-      setSavedVoterName(saved)
-    }
   }, [])
 
   // Set up real-time subscription for votes
@@ -68,28 +79,28 @@ function VotingContent() {
   const loadData = async () => {
     setIsLoading(true)
     try {
-      // Try Supabase
-      const [teamsResult, votesResult] = await Promise.all([
+      const [teamsResult, votesResult, profilesResult] = await Promise.all([
         supabase.from('teams').select('*').order('created_at', { ascending: false }),
         supabase.from('votes').select('*'),
+        supabase.from('profiles').select('*'),
       ])
 
       if (teamsResult.error) throw teamsResult.error
       if (votesResult.error) throw votesResult.error
+      if (profilesResult.error) throw profilesResult.error
 
       setTeams(teamsResult.data || [])
       setVotes(votesResult.data || [])
+      setProfiles((profilesResult.data as Profile[]) || [])
       setUseLocalStorage(false)
     } catch {
-      // Fallback to localStorage
-      console.log('Using localStorage fallback')
       setUseLocalStorage(true)
-      
       const storedTeams = localStorage.getItem('vibe-games-teams')
       const storedVotes = localStorage.getItem('vibe-games-votes')
-      
+      const storedProfiles = localStorage.getItem(PROFILES_STORAGE_KEY)
       if (storedTeams) setTeams(JSON.parse(storedTeams))
       if (storedVotes) setVotes(JSON.parse(storedVotes))
+      if (storedProfiles) setProfiles(JSON.parse(storedProfiles))
     } finally {
       setIsLoading(false)
     }
@@ -106,37 +117,31 @@ function VotingContent() {
     if (data) setVotes(data)
   }, [useLocalStorage])
 
-  const handleSaveVoterName = () => {
-    if (voterName.trim()) {
-      localStorage.setItem('vibe-games-voter-name', voterName.trim())
-      setSavedVoterName(voterName.trim())
-    }
-  }
+  const myProfile = myProfileId ? profiles.find((p) => p.id === myProfileId) : null
+  const voterName = myProfile?.name ?? ""
 
   const handleVote = async (teamId: string, category: VotingCategory, score: number) => {
-    if (!savedVoterName) return
+    if (!voterName) return
 
     if (useLocalStorage) {
       // localStorage fallback
       const existingVoteIndex = votes.findIndex(
-        v => v.voter_name.toLowerCase() === savedVoterName.toLowerCase() &&
+        v => v.voter_name.toLowerCase() === voterName.toLowerCase() &&
              v.team_id === teamId &&
              v.category === category
       )
 
       let updatedVotes: Vote[]
       if (existingVoteIndex >= 0) {
-        // Update existing vote
         updatedVotes = [...votes]
         updatedVotes[existingVoteIndex] = {
           ...updatedVotes[existingVoteIndex],
           score,
         }
       } else {
-        // Add new vote
         const newVote: Vote = {
           id: crypto.randomUUID(),
-          voter_name: savedVoterName,
+          voter_name: voterName,
           team_id: teamId,
           category,
           score,
@@ -153,7 +158,7 @@ function VotingContent() {
         .from('votes')
         .upsert(
           {
-            voter_name: savedVoterName,
+            voter_name: voterName,
             team_id: teamId,
             category,
             score,
@@ -190,25 +195,17 @@ function VotingContent() {
     setIsResetting(true)
     try {
       if (useLocalStorage) {
-        // Clear localStorage
         localStorage.removeItem('vibe-games-teams')
         localStorage.removeItem('vibe-games-votes')
-        localStorage.removeItem('vibe-games-voter-name')
       } else {
         // Clear Supabase tables
         await supabase.from('votes').delete().neq('id', '00000000-0000-0000-0000-000000000000')
         await supabase.from('teams').delete().neq('id', '00000000-0000-0000-0000-000000000000')
       }
 
-      // Reset voting state
       resetVoting()
-      
-      // Clear local state
       setTeams([])
       setVotes([])
-      setVoterName('')
-      setSavedVoterName('')
-      localStorage.removeItem('vibe-games-voter-name')
 
       alert('✅ All data has been reset successfully!')
       
@@ -220,6 +217,29 @@ function VotingContent() {
     } finally {
       setIsResetting(false)
     }
+  }
+
+  if (eventPhase !== "voting") {
+    return (
+      <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl border-2 border-dashed border-border bg-card p-12"
+          >
+            <Trophy className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-xl font-bold mb-2">Voting will be available soon</h2>
+            <p className="text-muted-foreground mb-6">
+              Voting will be available after the host unlocks it. Create your teams first!
+            </p>
+            <Link href="/teams">
+              <Button size="lg">Go to Teams</Button>
+            </Link>
+          </motion.div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -241,50 +261,28 @@ function VotingContent() {
           </p>
         </motion.div>
 
-        {/* Voter Identification */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-8"
-        >
-          <Card className="glass border-border/50 max-w-md mx-auto">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <User className="w-5 h-5 text-primary" />
-                <Label className="text-base font-semibold">Your Name</Label>
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Enter your name to vote..."
-                  value={voterName}
-                  onChange={(e) => setVoterName(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSaveVoterName()}
-                  className="bg-secondary/50"
-                />
-                <Button onClick={handleSaveVoterName} disabled={!voterName.trim()}>
-                  {savedVoterName ? 'Update' : 'Save'}
-                </Button>
-              </div>
-              {savedVoterName && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  Voting as: <span className="text-primary font-medium">{savedVoterName}</span>
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {!savedVoterName && (
+        {/* Voting as (from profile) */}
+        {voterName && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center text-sm text-muted-foreground mb-6"
+          >
+            Voting as: <span className="text-primary font-medium">{voterName}</span>
+          </motion.p>
+        )}
+        {!isLoading && !voterName && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center mb-8 p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20 max-w-md mx-auto"
+            className="text-center mb-8 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 max-w-md mx-auto"
           >
-            <AlertCircle className="w-5 h-5 text-yellow-500 mx-auto mb-2" />
-            <p className="text-sm text-yellow-500">
-              Enter your name above to start voting
+            <p className="text-sm text-amber-700 dark:text-amber-400 mb-3">
+              Create your profile on the Pairing page to vote.
             </p>
+            <Link href="/pairing">
+              <Button size="sm">Go to Pairing</Button>
+            </Link>
           </motion.div>
         )}
 
@@ -332,10 +330,10 @@ function VotingContent() {
                 <VotingCard
                   key={team.id}
                   team={team}
-                  voterName={savedVoterName}
+                  voterName={voterName}
                   existingVotes={votes}
                   onVote={handleVote}
-                  disabled={!savedVoterName}
+                  disabled={!voterName}
                 />
               ))}
             </motion.div>

@@ -113,60 +113,61 @@ export function VotingCard({ team, voterName, existingVotes, onVote, disabled }:
           )}
         </CardHeader>
         
-        <CardContent className="space-y-4">
-          {VOTING_CATEGORIES.map((category) => (
-            <div key={category.id} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">{category.name}</p>
-                  <p className="text-xs text-muted-foreground">{category.description}</p>
+        {!isTeamMember && (
+          <CardContent className="space-y-4">
+            {VOTING_CATEGORIES.map((category) => (
+              <div key={category.id} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">{category.name}</p>
+                    <p className="text-xs text-muted-foreground">{category.description}</p>
+                  </div>
+                  {submitting === category.id && (
+                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  )}
                 </div>
-                {submitting === category.id && (
-                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                )}
+                
+                <div className="star-rating">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Button
+                      key={star}
+                      variant="ghost"
+                      size="sm"
+                      className="p-1 h-auto"
+                      disabled={disabled || submitting !== null}
+                      onClick={() => handleStarClick(category.id, star)}
+                    >
+                      <Star
+                        className={`w-6 h-6 transition-colors ${
+                          star <= (votes[category.id] || 0)
+                            ? 'fill-yellow-500 text-yellow-500'
+                            : 'text-muted-foreground hover:text-yellow-500/50'
+                        }`}
+                      />
+                    </Button>
+                  ))}
+                </div>
               </div>
-              
-              <div className="star-rating">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Button
-                    key={star}
-                    variant="ghost"
-                    size="sm"
-                    className="p-1 h-auto"
-                    disabled={disabled || isTeamMember || submitting !== null}
-                    onClick={() => handleStarClick(category.id, star)}
-                  >
-                    <Star
-                      className={`w-6 h-6 transition-colors ${
-                        star <= (votes[category.id] || 0)
-                          ? 'fill-yellow-500 text-yellow-500'
-                          : 'text-muted-foreground hover:text-yellow-500/50'
-                      }`}
-                    />
-                  </Button>
-                ))}
-              </div>
-            </div>
-          ))}
+            ))}
 
-          {/* Score Summary */}
-          {votedCategories > 0 && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="pt-4 border-t border-border mt-4"
-            >
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">
-                  Your total score ({votedCategories}/{VOTING_CATEGORIES.length} categories)
-                </span>
-                <span className="font-bold text-primary">
-                  {totalScore} / {VOTING_CATEGORIES.length * 5}
-                </span>
-              </div>
-            </motion.div>
-          )}
-        </CardContent>
+            {votedCategories > 0 && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="pt-4 border-t border-border mt-4"
+              >
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">
+                    Your total score ({votedCategories}/{VOTING_CATEGORIES.length} categories)
+                  </span>
+                  <span className="font-bold text-primary">
+                    {totalScore} / {VOTING_CATEGORIES.length * 5}
+                  </span>
+                </div>
+              </motion.div>
+            )}
+          </CardContent>
+        )}
       </Card>
     </motion.div>
   )

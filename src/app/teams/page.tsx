@@ -1,25 +1,76 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { motion } from "framer-motion"
 import { TeamForm } from "@/components/team-form"
 import { TeamCard } from "@/components/team-card"
-import { IdeaGenerator } from "@/components/idea-generator"
 import { Button } from "@/components/ui/button"
-import { Users, ArrowRight, Trophy, RefreshCw } from "lucide-react"
+import { Users, ArrowRight, Trophy, RefreshCw, Lock, Loader2 } from "lucide-react"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
+import { Suspense } from "react"
 import { Team } from "@/types/database"
+import { Profile } from "@/types/database"
 import { supabase } from "@/lib/supabase"
+import { setEventPhase, getEventPhase, subscribeToEventPhase } from "@/lib/event-state"
+import { getAdminMode, subscribeToAdminMode } from "@/lib/admin-state"
+import { pairProfiles } from "@/lib/pairing"
 
-export default function TeamsPage() {
+const ADMIN_CODE = "vibegames2024"
+const PROFILES_STORAGE_KEY = "vibe-games-profiles"
+const MY_PROFILE_ID_KEY = "vibe-games-my-profile-id"
+
+function TeamsPageContent() {
+  const searchParams = useSearchParams()
+  const [adminFromToggle, setAdminFromToggle] = useState(false)
+  useEffect(() => {
+    setAdminFromToggle(getAdminMode())
+    const unsub = subscribeToAdminMode(setAdminFromToggle)
+    return unsub
+  }, [])
+  const isAdmin = searchParams.get("admin") === ADMIN_CODE || adminFromToggle
   const [teams, setTeams] = useState<Team[]>([])
+  const [profiles, setProfiles] = useState<Profile[]>([])
   const [selectedIdea, setSelectedIdea] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [useLocalStorage, setUseLocalStorage] = useState(false)
+  const [eventPhase, setEventPhaseState] = useState<string>("profiles")
+  const [isUnlockingVoting, setIsUnlockingVoting] = useState(false)
+  const [myProfileId, setMyProfileId] = useState<string | null>(null)
 
-  // Load teams on mount
+  const loadProfiles = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false })
+      if (error) throw error
+      setProfiles((data as Profile[]) || [])
+    } catch {
+      const stored = localStorage.getItem(PROFILES_STORAGE_KEY)
+      setProfiles(stored ? JSON.parse(stored) : [])
+    }
+  }, [])
+
   useEffect(() => {
     loadTeams()
+  }, [])
+
+  useEffect(() => {
+    getEventPhase().then(setEventPhaseState)
+    const unsub = subscribeToEventPhase(setEventPhaseState)
+    return unsub
+  }, [])
+
+  useEffect(() => {
+    if (eventPhase === "pairings" || eventPhase === "voting") {
+      loadProfiles()
+    }
+  }, [eventPhase, loadProfiles])
+
+  useEffect(() => {
+    const stored = typeof window !== "undefined" ? localStorage.getItem(MY_PROFILE_ID_KEY) : null
+    if (stored) setMyProfileId(stored)
   }, [])
 
   const loadTeams = async () => {
@@ -75,6 +126,60 @@ export default function TeamsPage() {
     }
   }
 
+  const handleUnlockVoting = async () => {
+    setIsUnlockingVoting(true)
+    try {
+      await setEventPhase("voting")
+      setEventPhaseState("voting")
+    } finally {
+      setIsUnlockingVoting(false)
+    }
+  }
+
+  const showAdminUnlockVoting = isAdmin && eventPhase !== "voting"
+
+  const pairs = (eventPhase === "pairings" || eventPhase === "voting") ? pairProfiles(profiles) : []
+  const profileMap = new Map(profiles.map((p) => [p.id, p]))
+  const myPair = myProfileId ? pairs.find((p) => p.profileIds.includes(myProfileId)) : null
+  const myPairMemberProfiles = myPair
+    ? myPair.profileIds
+        .map((id) => profileMap.get(id))
+        .filter((p): p is Profile => !!p)
+    : []
+  const myPairMemberNames = myPairMemberProfiles.map((p) => p.name)
+
+  const myPairTeam = teams.find((team) => {
+    if (myPairMemberNames.length === 0) return false
+    const teamMemberSet = new Set(team.members)
+    return myPairMemberNames.every((name) => teamMemberSet.has(name))
+  })
+
+  const isPhaseLocked = eventPhase === "profiles"
+  const showCreateForm = !isPhaseLocked && !myPairTeam
+
+  if (isPhaseLocked) {
+    return (
+      <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl border-2 border-dashed border-border bg-card p-12"
+          >
+            <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-xl font-bold mb-2">Teams will be available soon</h2>
+            <p className="text-muted-foreground mb-6">
+              Teams will be available after the host creates pairs. Head to Pairing to create your profile!
+            </p>
+            <Link href="/pairing">
+              <Button size="lg">Go to Pairing</Button>
+            </Link>
+          </motion.div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
@@ -97,24 +202,30 @@ export default function TeamsPage() {
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Left Column - Form & Idea Generator */}
           <div className="space-y-8">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <TeamForm onSubmit={handleCreateTeam} selectedIdea={selectedIdea} />
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <IdeaGenerator
-                onSelectIdea={setSelectedIdea}
-                selectedIdea={selectedIdea}
-              />
-            </motion.div>
+            {myPairTeam ? (
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 }}
+                className="rounded-2xl border border-primary/30 bg-primary/5 p-6"
+              >
+                <h3 className="font-semibold mb-2">Your team</h3>
+                <TeamCard team={myPairTeam} index={0} profiles={profiles} />
+              </motion.div>
+            ) : showCreateForm ? (
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <TeamForm
+                  onSubmit={handleCreateTeam}
+                  selectedIdea={selectedIdea}
+                  onSelectIdea={setSelectedIdea}
+                  initialMemberProfiles={myPairMemberProfiles.length > 0 ? myPairMemberProfiles : undefined}
+                />
+              </motion.div>
+            ) : null}
           </div>
 
           {/* Right Column - Created Teams */}
@@ -158,9 +269,46 @@ export default function TeamsPage() {
             ) : (
               <div className="space-y-4">
                 {teams.map((team, index) => (
-                  <TeamCard key={team.id} team={team} index={index} />
+                  <TeamCard key={team.id} team={team} index={index} profiles={profiles} />
                 ))}
               </div>
+            )}
+
+            {/* Admin: Unlock Voting */}
+            {showAdminUnlockVoting && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-2xl border-2 border-amber-500/30 bg-amber-500/10 p-6"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <Lock className="w-5 h-5 text-amber-600" />
+                  <span className="font-semibold text-amber-700 dark:text-amber-400">
+                    Admin controls
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Unlock Voting so participants can vote on team projects.
+                </p>
+                <Button
+                  onClick={handleUnlockVoting}
+                  disabled={isUnlockingVoting}
+                  className="w-full bg-amber-600 hover:bg-amber-700"
+                  size="lg"
+                >
+                  {isUnlockingVoting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Unlocking...
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-4 h-4 mr-2" />
+                      Unlock Voting
+                    </>
+                  )}
+                </Button>
+              </motion.div>
             )}
 
             {/* Proceed to Voting CTA */}
@@ -199,5 +347,19 @@ export default function TeamsPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function TeamsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen py-12 flex items-center justify-center">
+          <div className="animate-pulse text-muted-foreground">Loading...</div>
+        </div>
+      }
+    >
+      <TeamsPageContent />
+    </Suspense>
   )
 }

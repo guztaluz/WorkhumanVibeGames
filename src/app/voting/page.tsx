@@ -221,8 +221,8 @@ function VotingContent() {
 
   if (eventPhase !== "voting") {
     return (
-      <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-xl mx-auto text-center">
+      <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8">
+        <div className="max-w-xl w-full text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -255,7 +255,7 @@ function VotingContent() {
             <Trophy className="w-4 h-4 text-primary" />
             <span className="text-sm font-medium text-primary">Live Voting</span>
           </div>
-          <h1 className="font-display text-4xl font-bold mb-4">Vote for the Best Projects</h1>
+          <h1 className="font-display text-[55px] font-thin mb-4">Vote for the Best Projects</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Rate each team across multiple categories. The leaderboard updates in real-time!
           </p>
@@ -334,6 +334,7 @@ function VotingContent() {
                   existingVotes={votes}
                   onVote={handleVote}
                   disabled={!voterName}
+                  profiles={profiles}
                 />
               ))}
             </motion.div>

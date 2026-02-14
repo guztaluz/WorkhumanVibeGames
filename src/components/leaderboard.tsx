@@ -96,14 +96,15 @@ export function Leaderboard({ teams, votes }: LeaderboardProps) {
   }
 
   return (
-    <Card className="glass border-border/50">
-      <CardHeader>
+    <Card className="glass border-border/50 flex flex-col max-h-[calc(100vh-8rem)]">
+      <CardHeader className="shrink-0">
         <CardTitle className="flex items-center gap-2">
           <Trophy className="w-5 h-5 text-primary" />
           Live Leaderboard
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="flex flex-col min-h-0 shrink overflow-hidden">
+        <div className="overflow-y-auto space-y-4 flex-1 min-h-0 pr-1 -mr-1">
         <AnimatePresence mode="popLayout">
           {sortedTeams.map((item, index) => {
             const rank = index + 1
@@ -190,10 +191,11 @@ export function Leaderboard({ teams, votes }: LeaderboardProps) {
             )
           })}
         </AnimatePresence>
+        </div>
 
         {/* Voting Stats */}
         {votes.length > 0 && (
-          <div className="pt-4 border-t border-border">
+          <div className="pt-4 border-t border-border shrink-0 mt-4">
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <TrendingUp className="w-4 h-4 text-primary" />
               <span>{votes.length} total votes from {new Set(votes.map(v => v.voter_name.toLowerCase())).size} voters</span>

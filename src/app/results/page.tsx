@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Crown, Trophy, Medal, Award, Star, PartyPopper, RotateCcw } from "lucide-react"
+import { Trophy, Medal, Award, Star, PartyPopper, RotateCcw } from "lucide-react"
 import { Team, Vote, Profile } from "@/types/database"
 import { supabase, VOTING_CATEGORIES } from "@/lib/supabase"
 import { Confetti } from "@/components/confetti"
@@ -208,23 +208,31 @@ function ResultsContent() {
               transition={{ type: "spring", bounce: 0.4, duration: 0.8 }}
               className="mb-12"
             >
-              <Card className="relative overflow-hidden border-2 border-yellow-500/50 bg-gradient-to-br from-yellow-500/10 via-background to-amber-500/10">
+              <Card className="relative overflow-hidden border-2 border-yellow-500/50 bg-gradient-to-br from-yellow-500/10 via-background to-amber-500/10 !py-0">
                 {/* Animated glow */}
                 <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/20 via-transparent to-amber-500/20 animate-gradient" />
                 
-                <CardContent className="relative p-8 sm:p-12">
-                  <div className="flex flex-col items-center text-center">
-                    {/* Crown */}
+                <CardContent className="relative p-0 md:min-h-[400px]">
+                  <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] md:min-h-0 md:items-stretch">
+                    {/* Video - left column, fills space, touches bounding box, circular mask on right */}
                     <motion.div
-                      initial={{ y: -20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
                       transition={{ delay: 0.3 }}
+                      className="relative w-full aspect-video md:aspect-auto md:h-full md:min-h-[320px] overflow-hidden rounded-r-[9999px] md:rounded-r-[9999px] order-2 md:order-1"
                     >
-                      <Crown className="w-16 h-16 text-yellow-500 mb-4" />
+                      <video
+                        src="/winner-video.mp4"
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
                     </motion.div>
-                    
-                    <h2 className="font-display text-2xl font-bold text-yellow-500 mb-6">WINNER</h2>
-                    
+
+                    {/* Winner info - right column, left-aligned, vertically centered */}
+                    <div className="flex flex-col items-center md:items-start justify-center text-center md:text-left p-8 sm:p-12 order-1 md:order-2">
                     {/* Avatar */}
                     <motion.div
                       initial={{ scale: 0 }}
@@ -251,6 +259,52 @@ function ResultsContent() {
                       {winner.team.name}
                     </motion.h3>
                     
+                    {/* Team Members / Profiles */}
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.55 }}
+                      className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-4"
+                    >
+                      {(() => {
+                        const memberProfiles = winner.team.members
+                          .map((name) => profiles.find((p) => p.name === name))
+                          .filter((p): p is Profile => !!p)
+                        const displayList = memberProfiles.length > 0 ? memberProfiles : winner.team.members
+                        return displayList.map((pOrName, i) => {
+                          const p = typeof pOrName === "string" ? null : pOrName
+                          const name = typeof pOrName === "string" ? pOrName : pOrName.name
+                          const emoji = p ? getEmojiFromAvatar(p.avatar_url) : null
+                          const emojiBg = p ? getEmojiBgFromAvatar(p.avatar_url) : null
+                          const imageSrc = p && p.avatar_url && !isEmojiAvatar(p.avatar_url) ? p.avatar_url : undefined
+                          return emoji ? (
+                            <div
+                              key={i}
+                              className={cn(
+                                "flex items-center gap-2 rounded-full border-2 border-border px-3 py-1.5 text-base",
+                                !emojiBg && "bg-card"
+                              )}
+                              style={emojiBg ? { backgroundColor: `#${emojiBg}` } : undefined}
+                              title={name}
+                            >
+                              <span>{emoji}</span>
+                              <span className="text-sm font-medium text-muted-foreground">{name}</span>
+                            </div>
+                          ) : (
+                            <div key={i} className="flex items-center gap-2 rounded-full border-2 border-border px-3 py-1.5 bg-card">
+                              <Avatar className="size-8 shrink-0" title={name}>
+                                <AvatarImage src={imageSrc} alt={name} />
+                                <AvatarFallback className="bg-primary/20 text-primary text-xs font-medium">
+                                  {name.slice(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm font-medium text-muted-foreground">{name}</span>
+                            </div>
+                          )
+                        })
+                      })()}
+                    </motion.div>
+                    
                     {/* Score */}
                     <motion.div
                       initial={{ opacity: 0, scale: 0 }}
@@ -268,11 +322,12 @@ function ResultsContent() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.7 }}
-                        className="mt-4 text-muted-foreground max-w-md"
+                        className="mt-4 text-muted-foreground max-w-lg"
                       >
                         {winner.team.selected_idea}
                       </motion.p>
                     )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>

@@ -222,16 +222,24 @@ export function Navigation() {
   const isTeamsDisabled = eventPhase === "profiles"
   const isVotingDisabled = eventPhase !== "voting"
 
+  const getDisabledReason = (href: string) => {
+    if (href === "/teams" && isTeamsDisabled) return "Complete pairing first"
+    if (href === "/voting" && isVotingDisabled) return "Complete pairing and create teams first"
+    return ""
+  }
+
   return (
     <motion.nav
+      role="navigation"
+      aria-label="Main navigation"
       initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-fit glass rounded-2xl shadow-xl border border-white/10 px-2 py-2"
+      className="fixed top-4 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-50 max-w-[calc(100vw-2rem)] sm:max-w-none sm:w-fit glass rounded-2xl shadow-xl border border-white/10 px-2 py-2"
     >
-      <div className="flex items-center justify-center h-10 relative">
-          {/* Centered nav items */}
-          <div className="flex items-center gap-3">
+      <div className="flex items-center h-10 relative">
+          {/* Nav items - scroll horizontally on small screens to prevent overflow */}
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 overflow-x-auto overflow-y-hidden scroll-smooth flex-nowrap [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-track]:transparent [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb]:bg-white/20">
             <AnimatePresence mode="popLayout">
               {navItems.map((item) => {
                 const isActive = pathname === item.href
@@ -246,15 +254,15 @@ export function Navigation() {
                     whileHover={!isDisabled ? { scale: 1.05 } : undefined}
                     whileTap={!isDisabled ? { scale: 0.95 } : undefined}
                     className={cn(
-                      "flex items-center gap-2 px-4 py-2 rounded-lg transition-colors",
+                      "flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg transition-colors",
                       isActive
                         ? "text-primary-foreground"
                         : "text-muted-foreground hover:text-foreground hover:bg-secondary",
                       isResultsTab && !isActive && "text-yellow-500 hover:text-yellow-400",
-                      isDisabled && "opacity-50 pointer-events-none cursor-not-allowed"
+                      isDisabled && "text-foreground/70 pointer-events-none cursor-not-allowed"
                     )}
                   >
-                    <Icon className={cn("w-4 h-4 shrink-0", isResultsTab && !isActive && "text-yellow-500")} />
+                    <Icon className={cn("w-4 h-4 shrink-0", isResultsTab && !isActive && !isDisabled && "text-yellow-500")} />
                     <span className="font-medium">{item.step}. {item.label}</span>
 
                     {isActive && !isDisabled && (
@@ -269,18 +277,36 @@ export function Navigation() {
                   </motion.div>
                 )
 
+                const label = `${item.step}. ${item.label}`
+                const disabledReason = getDisabledReason(item.href)
+                const disabledAriaLabel = disabledReason ? `${label}, ${disabledReason}` : label
+
                 return (
                   <motion.div
                     key={item.href}
+                    className="shrink-0"
                     initial={isResultsTab ? { opacity: 0, scale: 0.8, x: 20 } : false}
                     animate={{ opacity: 1, scale: 1, x: 0 }}
                     exit={{ opacity: 0, scale: 0.8, x: 20 }}
                     transition={{ type: "spring", bounce: 0.3 }}
                   >
                     {isDisabled ? (
-                      <span className="relative block">{content}</span>
+                      <span
+                        role="link"
+                        aria-disabled="true"
+                        aria-label={disabledAriaLabel}
+                        tabIndex={-1}
+                        className="relative block"
+                      >
+                        {content}
+                      </span>
                     ) : (
-                      <Link href={item.href} className="relative">
+                      <Link
+                        href={item.href}
+                        className="relative"
+                        aria-current={isActive ? "page" : undefined}
+                        aria-label={label}
+                      >
                         {content}
                       </Link>
                     )}
@@ -290,8 +316,8 @@ export function Navigation() {
             </AnimatePresence>
           </div>
 
-          {/* Admin toggle */}
-          <div ref={adminDropdownRef} className="ml-2 pl-2 border-l border-border">
+          {/* Admin toggle - stays visible when nav scrolls */}
+          <div ref={adminDropdownRef} className="ml-2 pl-2 border-l border-border shrink-0">
             <button
               type="button"
               onClick={() => setAdminDropdownOpen(!adminDropdownOpen)}

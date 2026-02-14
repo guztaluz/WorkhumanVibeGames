@@ -11,7 +11,7 @@ import { PROJECT_IDEAS } from "@/lib/project-ideas"
 const CARD_GAP = 12
 
 interface IdeaGeneratorProps {
-  onSelectIdea: (idea: string) => void
+  onSelectIdea: (idea: string | null) => void
   selectedIdea: string | null
 }
 
@@ -146,8 +146,10 @@ export function IdeaGenerator({ onSelectIdea, selectedIdea }: IdeaGeneratorProps
                     <Button
                       size="sm"
                       className="mt-3 w-full"
-                      onClick={() => onSelectIdea(`${displayedIdea.title}: ${displayedIdea.description}`)}
-                      disabled={selectedIdea === `${displayedIdea.title}: ${displayedIdea.description}`}
+                      onClick={() => {
+                        const fullIdea = `${displayedIdea.title}: ${displayedIdea.description}`
+                        onSelectIdea(selectedIdea === fullIdea ? null : fullIdea)
+                      }}
                     >
                       {selectedIdea === `${displayedIdea.title}: ${displayedIdea.description}` ? (
                         <>
@@ -195,7 +197,7 @@ export function IdeaGenerator({ onSelectIdea, selectedIdea }: IdeaGeneratorProps
         <div
           ref={galleryScrollRef}
           onScroll={handleGalleryScroll}
-          className="flex overflow-x-auto w-full py-4 gap-3 scroll-smooth snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex overflow-x-auto w-full py-6 px-2 gap-3 scroll-smooth snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
             {PROJECT_IDEAS.map((idea) => {
               const fullIdea = `${idea.title}: ${idea.description}`
@@ -206,7 +208,7 @@ export function IdeaGenerator({ onSelectIdea, selectedIdea }: IdeaGeneratorProps
                   key={idea.id}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="shrink-0 min-w-full w-full min-h-[220px] snap-start"
+                  className="shrink-0 min-w-full w-full min-h-[220px] snap-start py-1"
                 >
                   <Card
                     className={`cursor-pointer transition-all h-full border-2 border-border ${
@@ -214,7 +216,7 @@ export function IdeaGenerator({ onSelectIdea, selectedIdea }: IdeaGeneratorProps
                         ? "!border-primary bg-primary/10 ring-2 ring-primary/30"
                         : "hover:!border-primary/60"
                     }`}
-                    onClick={() => onSelectIdea(fullIdea)}
+                    onClick={() => onSelectIdea(isSelected ? null : fullIdea)}
                   >
                     <CardContent className="p-6 h-full flex flex-col">
                       <div className="flex flex-col items-center text-center">

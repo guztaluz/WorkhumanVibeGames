@@ -28,7 +28,7 @@ export default function RootLayout({
     <html lang="en" className={`dark ${inter.variable} ${cinzelDecorative.variable}`} suppressHydrationWarning>
       <body className="antialiased font-sans" suppressHydrationWarning>
         <Navigation />
-        <main className="pt-16 min-h-screen">
+        <main className="pt-20 sm:pt-16 min-h-screen">
           {children}
         </main>
       </body>

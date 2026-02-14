@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils"
 interface TeamFormProps {
   onSubmit: (team: Omit<Team, 'id' | 'created_at'>) => Promise<void>
   selectedIdea: string | null
-  onSelectIdea: (idea: string) => void
+  onSelectIdea: (idea: string | null) => void
   /** When set, members are read-only (from pairing) - no add/remove */
   initialMemberProfiles?: Profile[]
 }

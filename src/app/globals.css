@@ -88,8 +88,28 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /* Full-viewport background - use both html and fixed overlay to prevent cut-off */
+  html {
+    min-width: 100%;
+    min-height: 100%;
+    background-color: var(--background);
+  }
+  /* Fixed overlay ensures background covers viewport even with overflow/layout edge cases */
+  html::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100dvh;
+    min-height: 100vh;
+    background-color: var(--background);
+    z-index: -1;
+    pointer-events: none;
+  }
   body {
     @apply bg-background text-foreground;
+    min-width: 100%;
+    min-height: 100%;
   }
 }
 
@@ -166,6 +186,7 @@
 
 /* Gradient text */
 .gradient-text {
+  font-weight: 100;
   background: linear-gradient(135deg, oklch(0.85 0.12 85), oklch(0.78 0.15 75), oklch(0.72 0.18 45));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;

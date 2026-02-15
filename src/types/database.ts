@@ -119,6 +119,22 @@ export interface Database {
         }
       }
     }
+    Functions: {
+      create_team_safe: {
+        Args: {
+          p_name: string
+          p_avatar_url: string | null
+          p_members: string[]
+          p_selected_idea: string | null
+        }
+        Returns: {
+          success: boolean
+          reason?: string
+          team?: Database["public"]["Tables"]["teams"]["Row"]
+          existing_team?: Database["public"]["Tables"]["teams"]["Row"]
+        }
+      }
+    }
   }
 }
 

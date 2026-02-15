@@ -9,8 +9,7 @@ import { Users, ArrowRight, Trophy, RefreshCw, Lock, Loader2, PartyPopper } from
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { Suspense } from "react"
-import { Team } from "@/types/database"
-import { Profile } from "@/types/database"
+import { Team, Profile, CreateTeamSafeResult } from "@/types/database"
 import { supabase } from "@/lib/supabase"
 import { setEventPhase, getEventPhase, subscribeToEventPhase } from "@/lib/event-state"
 import { getAdminMode, subscribeToAdminMode } from "@/lib/admin-state"
@@ -130,12 +129,14 @@ function TeamsPageContent() {
       setSelectedIdea(null)
     } else {
       // Use the safe RPC function that prevents duplicate teams for paired members
-      const { data, error } = await supabase.rpc('create_team_safe', {
-        p_name: teamData.name,
-        p_avatar_url: teamData.avatar_url,
-        p_members: teamData.members,
-        p_selected_idea: teamData.selected_idea,
-      })
+      // Cast needed because the Database type lacks full GenericSchema compliance (no Relationships/Views)
+      const { data, error } = await supabase
+        .rpc('create_team_safe' as never, {
+          p_name: teamData.name,
+          p_avatar_url: teamData.avatar_url,
+          p_members: teamData.members,
+          p_selected_idea: teamData.selected_idea,
+        } as never) as unknown as { data: CreateTeamSafeResult | null; error: Error | null }
 
       if (error) throw error
 

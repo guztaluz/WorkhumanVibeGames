@@ -1,5 +1,26 @@
 export type SkillLevel = "just_starting" | "getting_hang" | "master"
 
+export interface CreateTeamSafeResult {
+  success: boolean
+  reason?: string
+  team?: {
+    id: string
+    name: string
+    avatar_url: string | null
+    members: string[]
+    selected_idea: string | null
+    created_at: string
+  }
+  existing_team?: {
+    id: string
+    name: string
+    avatar_url: string | null
+    members: string[]
+    selected_idea: string | null
+    created_at: string
+  }
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -116,22 +137,6 @@ export interface Database {
           category?: string
           score?: number
           created_at?: string
-        }
-      }
-    }
-    Functions: {
-      create_team_safe: {
-        Args: {
-          p_name: string
-          p_avatar_url: string | null
-          p_members: string[]
-          p_selected_idea: string | null
-        }
-        Returns: {
-          success: boolean
-          reason?: string
-          team?: Database["public"]["Tables"]["teams"]["Row"]
-          existing_team?: Database["public"]["Tables"]["teams"]["Row"]
         }
       }
     }

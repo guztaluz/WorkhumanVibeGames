@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { Sparkles, Users, UserPlus, Trophy, Crown, Settings2, Trash2, UsersRound } from "lucide-react"
+import { Sparkles, Users, UserPlus, Trophy, Crown, Settings2, Trash2, UsersRound, KeyRound, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { isVotingFinished } from "@/lib/voting-state"
 import { getEventPhase, subscribeToEventPhase, type EventPhase } from "@/lib/event-state"
@@ -20,6 +20,8 @@ const baseNavItems = [
 
 const resultsNavItem = { href: "/results", label: "Results", icon: Crown, step: 5 }
 
+const ADMIN_CODE = "vibegames2024"
+
 export function Navigation() {
   const pathname = usePathname()
   const [showResults, setShowResults] = useState(false)
@@ -27,6 +29,10 @@ export function Navigation() {
   const [adminMode, setAdminModeState] = useState(false)
   const [adminDropdownOpen, setAdminDropdownOpen] = useState(false)
   const adminDropdownRef = useRef<HTMLDivElement>(null)
+  const [adminPasswordVerified, setAdminPasswordVerified] = useState(false)
+  const [adminPasswordInput, setAdminPasswordInput] = useState("")
+  const [adminPasswordError, setAdminPasswordError] = useState(false)
+  const passwordInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     setAdminModeState(getAdminMode())
@@ -35,15 +41,35 @@ export function Navigation() {
   }, [])
 
   useEffect(() => {
-    if (!adminDropdownOpen) return
+    if (!adminDropdownOpen) {
+      // Reset password input when dropdown closes
+      setAdminPasswordInput("")
+      setAdminPasswordError(false)
+      return
+    }
     const handleClickOutside = (e: MouseEvent) => {
       if (adminDropdownRef.current && !adminDropdownRef.current.contains(e.target as Node)) {
         setAdminDropdownOpen(false)
       }
     }
     document.addEventListener("mousedown", handleClickOutside)
+    // Auto-focus password input when dropdown opens and not yet verified
+    if (!adminPasswordVerified) {
+      setTimeout(() => passwordInputRef.current?.focus(), 50)
+    }
     return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [adminDropdownOpen])
+  }, [adminDropdownOpen, adminPasswordVerified])
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (adminPasswordInput === ADMIN_CODE) {
+      setAdminPasswordVerified(true)
+      setAdminPasswordError(false)
+      setAdminPasswordInput("")
+    } else {
+      setAdminPasswordError(true)
+    }
+  }
 
   const handleAdminToggle = () => {
     if (adminMode) {
@@ -330,56 +356,94 @@ export function Navigation() {
               <motion.div
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="absolute right-0 top-full mt-1 py-2 min-w-[200px] rounded-lg border border-border bg-popover shadow-lg z-50"
+                className="absolute right-0 top-full mt-1 py-2 min-w-[220px] rounded-lg border border-border bg-popover shadow-lg z-50"
               >
-                <div className="px-4 py-2 border-b border-border">
-                  <p className="text-xs font-medium text-muted-foreground">Admin mode</p>
-                  <button
-                    type="button"
-                    onClick={handleAdminToggle}
-                    className={cn(
-                      "mt-2 w-full py-2 px-3 rounded-md text-sm font-medium transition-colors",
-                      adminMode
-                        ? "bg-amber-500/20 text-amber-600 dark:text-amber-400"
-                        : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
+                {!adminPasswordVerified ? (
+                  /* Password gate */
+                  <form onSubmit={handlePasswordSubmit} className="px-4 py-3">
+                    <div className="flex items-center gap-2 mb-3">
+                      <KeyRound className="w-4 h-4 text-muted-foreground" />
+                      <p className="text-xs font-medium text-muted-foreground">Enter admin password</p>
+                    </div>
+                    <input
+                      ref={passwordInputRef}
+                      type="password"
+                      value={adminPasswordInput}
+                      onChange={(e) => {
+                        setAdminPasswordInput(e.target.value)
+                        setAdminPasswordError(false)
+                      }}
+                      placeholder="Password"
+                      className={cn(
+                        "w-full px-3 py-2 rounded-md text-sm bg-secondary/50 border outline-none focus:ring-2 focus:ring-primary/40 transition-colors",
+                        adminPasswordError
+                          ? "border-destructive focus:ring-destructive/40"
+                          : "border-border"
+                      )}
+                    />
+                    {adminPasswordError && (
+                      <p className="text-xs text-destructive mt-1.5">Wrong password</p>
                     )}
-                  >
-                    {adminMode ? "On — Click to turn off & refresh" : "Off — Click to turn on"}
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAdminDropdownOpen(false)
-                    handleAddFakeProfiles()
-                  }}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-secondary/80 transition-colors"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  Add 20 fake profiles
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAdminDropdownOpen(false)
-                    handleAddFakeTeams()
-                  }}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-secondary/80 transition-colors"
-                >
-                  <UsersRound className="w-4 h-4" />
-                  Add fake teams
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAdminDropdownOpen(false)
-                    handleResetAllData()
-                  }}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Reset all data
-                </button>
+                    <button
+                      type="submit"
+                      className="mt-2 w-full py-2 px-3 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                    >
+                      Unlock
+                    </button>
+                  </form>
+                ) : (
+                  /* Admin menu (after password verified) */
+                  <>
+                    <div className="px-4 py-2 border-b border-border">
+                      <p className="text-xs font-medium text-muted-foreground">Admin mode</p>
+                      <button
+                        type="button"
+                        onClick={handleAdminToggle}
+                        className={cn(
+                          "mt-2 w-full py-2 px-3 rounded-md text-sm font-medium transition-colors",
+                          adminMode
+                            ? "bg-amber-500/20 text-amber-600 dark:text-amber-400"
+                            : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
+                        )}
+                      >
+                        {adminMode ? "On — Click to turn off & refresh" : "Off — Click to turn on"}
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAdminDropdownOpen(false)
+                        handleAddFakeProfiles()
+                      }}
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-secondary/80 transition-colors"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      Add 20 fake profiles
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAdminDropdownOpen(false)
+                        handleAddFakeTeams()
+                      }}
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-secondary/80 transition-colors"
+                    >
+                      <UsersRound className="w-4 h-4" />
+                      Add fake teams
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAdminDropdownOpen(false)
+                        handleResetAllData()
+                      }}
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Reset all data
+                    </button>
+                  </>
+                )}
               </motion.div>
             )}
           </div>

@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import { TeamForm } from "@/components/team-form"
 import { TeamCard } from "@/components/team-card"
 import { Button } from "@/components/ui/button"
-import { Users, ArrowRight, Trophy, RefreshCw, Lock, Loader2 } from "lucide-react"
+import { Users, ArrowRight, Trophy, RefreshCw, Lock, Loader2, PartyPopper } from "lucide-react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { Suspense } from "react"
@@ -37,6 +37,7 @@ function TeamsPageContent() {
   const [eventPhase, setEventPhaseState] = useState<string>("profiles")
   const [isUnlockingVoting, setIsUnlockingVoting] = useState(false)
   const [myProfileId, setMyProfileId] = useState<string | null>(null)
+  const [partnerCreatedNotice, setPartnerCreatedNotice] = useState(false)
 
   const loadProfiles = useCallback(async () => {
     try {
@@ -54,6 +55,23 @@ function TeamsPageContent() {
 
   useEffect(() => {
     loadTeams()
+
+    // Real-time subscription: when any team is created/updated/deleted,
+    // reload teams so the UI updates instantly (e.g. partner creates the team)
+    const channel = supabase
+      .channel("teams-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "teams" },
+        () => {
+          loadTeams()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   useEffect(() => {
@@ -111,18 +129,26 @@ function TeamsPageContent() {
       localStorage.setItem('vibe-games-teams', JSON.stringify(updatedTeams))
       setSelectedIdea(null)
     } else {
-      // Use Supabase
-      const { data, error } = await supabase
-        .from('teams')
-        .insert(teamData as never)
-        .select()
-        .single()
+      // Use the safe RPC function that prevents duplicate teams for paired members
+      const { data, error } = await supabase.rpc('create_team_safe', {
+        p_name: teamData.name,
+        p_avatar_url: teamData.avatar_url,
+        p_members: teamData.members,
+        p_selected_idea: teamData.selected_idea,
+      })
 
       if (error) throw error
-      if (data) {
-        setTeams([data as Team, ...teams])
+
+      if (data && data.success) {
+        // Team created successfully
+        setTeams([data.team as Team, ...teams])
+        setSelectedIdea(null)
+      } else if (data && !data.success && data.reason === 'member_already_in_team') {
+        // Partner already created the team — show friendly notice and refresh teams
+        setPartnerCreatedNotice(true)
+        await loadTeams()
+        setSelectedIdea(null)
       }
-      setSelectedIdea(null)
     }
   }
 
@@ -202,6 +228,25 @@ function TeamsPageContent() {
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Left Column - Form & Idea Generator */}
           <div className="space-y-8">
+            {/* Notice: partner already created the team */}
+            {partnerCreatedNotice && myPairTeam && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-xl border border-green-500/30 bg-green-500/10 p-4 flex items-start gap-3"
+              >
+                <PartyPopper className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-green-700 dark:text-green-400">
+                    Your partner already set up the team!
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Great minds think alike. Your team is ready to go.
+                  </p>
+                </div>
+              </motion.div>
+            )}
+
             {myPairTeam ? (
               <motion.div
                 initial={{ opacity: 0, x: -20 }}

@@ -77,6 +77,47 @@ CREATE POLICY "Allow read on project_ideas" ON project_ideas
 CREATE POLICY "Allow all operations on votes" ON votes
   FOR ALL USING (true) WITH CHECK (true);
 
+-- Safe team creation function (prevents duplicate teams for paired members)
+-- Atomically checks if any member already belongs to a team before inserting.
+-- Returns { success: true, team: ... } or { success: false, reason: 'member_already_in_team', existing_team: ... }
+CREATE OR REPLACE FUNCTION create_team_safe(
+  p_name TEXT,
+  p_avatar_url TEXT,
+  p_members TEXT[],
+  p_selected_idea TEXT
+) RETURNS JSONB
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_existing_team teams%ROWTYPE;
+  v_new_team teams%ROWTYPE;
+BEGIN
+  -- Lock all teams that share any member to serialize concurrent access
+  SELECT * INTO v_existing_team
+  FROM teams
+  WHERE members && p_members
+  LIMIT 1
+  FOR UPDATE;
+
+  IF FOUND THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'reason', 'member_already_in_team',
+      'existing_team', row_to_json(v_existing_team)::jsonb
+    );
+  END IF;
+
+  INSERT INTO teams (name, avatar_url, members, selected_idea)
+  VALUES (p_name, p_avatar_url, p_members, p_selected_idea)
+  RETURNING * INTO v_new_team;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'team', row_to_json(v_new_team)::jsonb
+  );
+END;
+$$;
+
 -- Enable realtime
 ALTER PUBLICATION supabase_realtime ADD TABLE votes;
 ALTER PUBLICATION supabase_realtime ADD TABLE teams;

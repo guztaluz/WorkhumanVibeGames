@@ -159,7 +159,7 @@ function TeamsPageContent() {
 
   if (isPhaseLocked) {
     return (
-      <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -181,7 +181,7 @@ function TeamsPageContent() {
   }
 
   return (
-    <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <motion.div
@@ -191,9 +191,9 @@ function TeamsPageContent() {
         >
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4">
             <Users className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium text-primary">Team Setup</span>
+            <span className="text-sm font-medium text-primary">Teams</span>
           </div>
-          <h1 className="font-display text-4xl font-bold mb-4">Create Your Team</h1>
+          <h1 className="font-display font-thin text-[55px] tracking-tight mb-4">Create Your Team</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Form your squad, pick a ridiculous project idea, and get ready to vibe code your way to victory!
           </p>

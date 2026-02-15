@@ -259,7 +259,7 @@ export function Navigation() {
                         ? "text-primary-foreground"
                         : "text-muted-foreground hover:text-foreground hover:bg-secondary",
                       isResultsTab && !isActive && "text-yellow-500 hover:text-yellow-400",
-                      isDisabled && "text-foreground/70 pointer-events-none cursor-not-allowed"
+                      isDisabled && "text-foreground/50 opacity-75 pointer-events-none"
                     )}
                   >
                     <Icon className={cn("w-4 h-4 shrink-0", isResultsTab && !isActive && !isDisabled && "text-yellow-500")} />
@@ -296,7 +296,7 @@ export function Navigation() {
                         aria-disabled="true"
                         aria-label={disabledAriaLabel}
                         tabIndex={-1}
-                        className="relative block"
+                        className="relative block cursor-not-allowed"
                       >
                         {content}
                       </span>

@@ -99,10 +99,10 @@ export default function Home() {
           aria-hidden
         />
 
-        {/* Decorative statues with parallax - absolute positioned, don't affect layout */}
+        {/* Decorative statues with parallax - scale with viewport, ~420px on MacBook, grows on larger monitors */}
         <motion.div
-          style={{ y: statueLeftY }}
-          className="absolute left-0 bottom-0 top-0 w-[min(32vw,420px)] flex items-end justify-center pointer-events-none z-[5]"
+          style={{ y: statueLeftY, width: "clamp(280px, 28vw, 750px)" }}
+          className="absolute left-0 bottom-0 top-0 flex items-end justify-center pointer-events-none z-[5]"
           aria-hidden
         >
           <img
@@ -112,8 +112,8 @@ export default function Home() {
           />
         </motion.div>
         <motion.div
-          style={{ y: statueRightY }}
-          className="absolute right-0 bottom-0 top-0 w-[min(32vw,420px)] flex items-end justify-center pointer-events-none z-[5]"
+          style={{ y: statueRightY, width: "clamp(280px, 28vw, 750px)" }}
+          className="absolute right-0 bottom-0 top-0 flex items-end justify-center pointer-events-none z-[5]"
           aria-hidden
         >
           <img

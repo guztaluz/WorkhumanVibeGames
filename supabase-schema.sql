@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   name TEXT NOT NULL,
   avatar_url TEXT,
   skill_level TEXT NOT NULL DEFAULT 'just_starting' CHECK (skill_level IN ('just_starting', 'getting_hang', 'master')),
+  work_location TEXT NOT NULL DEFAULT 'in_office' CHECK (work_location IN ('remote', 'in_office')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

@@ -55,6 +55,15 @@ const SKILL_OPTIONS: {
   },
 ]
 
+const WORK_LOCATION_OPTIONS: {
+  value: Profile["work_location"]
+  label: string
+  emoji: string
+}[] = [
+  { value: "in_office", label: "In office", emoji: "🏢" },
+  { value: "remote", label: "Remote", emoji: "🏠" },
+]
+
 function MiniProfile({
   profile,
   isAdmin,
@@ -71,6 +80,7 @@ function MiniProfile({
   const imageSrc =
     profile.avatar_url && !isEmojiAvatar(profile.avatar_url) ? profile.avatar_url : undefined
   const skillOpt = SKILL_OPTIONS.find((o) => o.value === profile.skill_level)
+  const workOpt = WORK_LOCATION_OPTIONS.find((o) => o.value === (profile.work_location ?? "in_office"))
 
   return (
     <motion.div
@@ -113,6 +123,12 @@ function MiniProfile({
         <span>{skillOpt?.emoji}</span>
         <span className="truncate max-w-[72px]">{skillOpt?.label}</span>
       </span>
+      {workOpt && (
+        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+          <span>{workOpt.emoji}</span>
+          <span className="truncate max-w-[72px]">{workOpt.label}</span>
+        </span>
+      )}
     </motion.div>
   )
 }
@@ -135,6 +151,7 @@ function PairingPageContent() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [avatarMode, setAvatarMode] = useState<"upload" | "url" | "emoji">("emoji")
   const [skillLevel, setSkillLevel] = useState<Profile["skill_level"]>("just_starting")
+  const [workLocation, setWorkLocation] = useState<Profile["work_location"]>("in_office")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isProceeding, setIsProceeding] = useState(false)
@@ -177,6 +194,7 @@ function PairingPageContent() {
       setName(myProfile.name)
       setAvatarUrl(myProfile.avatar_url)
       setSkillLevel(myProfile.skill_level)
+      setWorkLocation(myProfile.work_location ?? "in_office")
       if (myProfile.avatar_url?.startsWith("emoji:")) {
         setAvatarMode("emoji")
       } else if (myProfile.avatar_url?.startsWith("data:")) {
@@ -275,6 +293,7 @@ function PairingPageContent() {
         name: name.trim(),
         avatar_url: avatarValue,
         skill_level: skillLevel,
+        work_location: workLocation,
       }
 
       if (myProfileId) {
@@ -405,6 +424,29 @@ function PairingPageContent() {
                     </div>
 
                     <div className="space-y-3">
+                      <Label>Where are you working?</Label>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {WORK_LOCATION_OPTIONS.map((opt) => (
+                          <motion.button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => setWorkLocation(opt.value)}
+                            whileHover={{ scale: 1.02, y: -2 }}
+                            whileTap={{ scale: 0.98 }}
+                            className={`flex flex-col items-center gap-2 rounded-2xl border-2 p-5 text-center transition-all ${
+                              workLocation === opt.value
+                                ? "border-primary bg-primary/15 shadow-lg shadow-primary/10"
+                                : "border-border bg-secondary/30 hover:border-primary/40"
+                            }`}
+                          >
+                            <span className="text-4xl">{opt.emoji}</span>
+                            <span className="font-semibold text-sm">{opt.label}</span>
+                          </motion.button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
                       <Label className="flex items-center gap-2">
                         <Zap className="w-4 h-4 text-primary" />
                         What&apos;s your vibe coding proficiency level?
@@ -474,9 +516,11 @@ function PairingPageContent() {
                       .filter(Boolean) as Profile[]
                     const names = pairProfilesList.map((p) => p.name)
                     const pairLabel =
-                      names.length === 2
-                        ? `${names[0]} with ${names[1]}`
-                        : `${names[0]}, ${names[1]} & ${names[2]}`
+                      names.length === 1
+                        ? names[0]
+                        : names.length === 2
+                          ? `${names[0]} with ${names[1]}`
+                          : `${names[0]}, ${names[1]} & ${names[2]}`
                     return (
                       <motion.div
                         key={index}
@@ -520,7 +564,18 @@ function PairingPageContent() {
                             )
                           })}
                         </div>
-                        <span className="font-medium text-sm">{pairLabel}</span>
+                        <span className="font-medium text-sm flex-1 min-w-0">{pairLabel}</span>
+                        {pairProfilesList.length > 0 && (() => {
+                          const workOpt = WORK_LOCATION_OPTIONS.find(
+                            (o) => o.value === (pairProfilesList[0].work_location ?? "in_office")
+                          )
+                          return workOpt ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-muted/60 px-2 py-0.5 text-xs font-medium text-muted-foreground shrink-0">
+                              <span>{workOpt.emoji}</span>
+                              <span>{workOpt.label}</span>
+                            </span>
+                          ) : null
+                        })()}
                       </motion.div>
                     )
                   })}

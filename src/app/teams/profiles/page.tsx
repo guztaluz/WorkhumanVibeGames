@@ -55,6 +55,15 @@ const SKILL_OPTIONS: {
   },
 ]
 
+const WORK_LOCATION_OPTIONS: {
+  value: Profile["work_location"]
+  label: string
+  emoji: string
+}[] = [
+  { value: "in_office", label: "In office", emoji: "🏢" },
+  { value: "remote", label: "Remote", emoji: "🏠" },
+]
+
 const STORAGE_KEY = "vibe-games-profiles"
 
 function ProfileDisplay({ profile }: { profile: Profile }) {
@@ -107,6 +116,7 @@ function ProfilesPageContent() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [avatarMode, setAvatarMode] = useState<"upload" | "url" | "emoji">("emoji")
   const [skillLevel, setSkillLevel] = useState<Profile["skill_level"]>("just_starting")
+  const [workLocation, setWorkLocation] = useState<Profile["work_location"]>("in_office")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -178,7 +188,7 @@ function ProfilesPageContent() {
         if (useLocalStorage) {
           const updated = profiles.map((p) =>
             p.id === editingId
-              ? { ...p, name: name.trim(), avatar_url: avatarValue, skill_level: skillLevel }
+              ? { ...p, name: name.trim(), avatar_url: avatarValue, skill_level: skillLevel, work_location: workLocation }
               : p
           )
           setProfiles(updated)
@@ -190,6 +200,7 @@ function ProfilesPageContent() {
               name: name.trim(),
               avatar_url: avatarValue,
               skill_level: skillLevel,
+              work_location: workLocation,
             } as never)
             .eq("id", editingId)
 
@@ -201,6 +212,7 @@ function ProfilesPageContent() {
             name: name.trim(),
             avatar_url: avatarValue,
             skill_level: skillLevel,
+            work_location: workLocation,
           }
           setProfiles(updated)
         }
@@ -210,6 +222,7 @@ function ProfilesPageContent() {
           name: name.trim(),
           avatar_url: avatarValue,
           skill_level: skillLevel,
+          work_location: workLocation,
         }
 
         if (useLocalStorage) {
@@ -236,6 +249,7 @@ function ProfilesPageContent() {
       setName("")
       setAvatarUrl(null)
       setSkillLevel("just_starting")
+      setWorkLocation("in_office")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save profile")
     } finally {
@@ -247,6 +261,7 @@ function ProfilesPageContent() {
     setName(profile.name)
     setAvatarUrl(profile.avatar_url)
     setSkillLevel(profile.skill_level)
+    setWorkLocation(profile.work_location ?? "in_office")
     if (profile.avatar_url?.startsWith("emoji:")) {
       setAvatarMode("emoji")
     } else if (profile.avatar_url?.startsWith("data:")) {
@@ -271,6 +286,7 @@ function ProfilesPageContent() {
       setName("")
       setAvatarUrl(null)
       setSkillLevel("just_starting")
+      setWorkLocation("in_office")
     }
   }
 
@@ -370,6 +386,30 @@ function ProfilesPageContent() {
                     />
                   </div>
 
+                  {/* Work location - in office vs remote */}
+                  <div className="space-y-3">
+                    <Label>Where are you working?</Label>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {WORK_LOCATION_OPTIONS.map((opt) => (
+                        <motion.button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setWorkLocation(opt.value)}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          className={`flex flex-col items-center gap-2 rounded-xl border-2 p-4 text-center transition-all ${
+                            workLocation === opt.value
+                              ? "border-primary bg-primary/10 shadow-md"
+                              : "border-border bg-card hover:border-primary/30"
+                          }`}
+                        >
+                          <span className="text-3xl">{opt.emoji}</span>
+                          <span className="font-medium text-sm">{opt.label}</span>
+                        </motion.button>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* Skill level - selectable cards */}
                   <div className="space-y-3">
                     <Label>Vibe coding level</Label>
@@ -457,6 +497,9 @@ function ProfilesPageContent() {
                       <p className="text-lg font-semibold truncate">{profile.name}</p>
                       <p className="text-sm text-muted-foreground">
                         {SKILL_OPTIONS.find((o) => o.value === profile.skill_level)?.label}
+                        {profile.work_location != null && (
+                          <> · {WORK_LOCATION_OPTIONS.find((o) => o.value === profile.work_location)?.label}</>
+                        )}
                       </p>
                     </div>
                     {!phaseComplete && (

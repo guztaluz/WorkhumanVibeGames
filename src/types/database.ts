@@ -1,4 +1,5 @@
 export type SkillLevel = "just_starting" | "getting_hang" | "master"
+export type WorkLocation = "remote" | "in_office"
 
 export interface CreateTeamSafeResult {
   success: boolean
@@ -30,6 +31,7 @@ export interface Database {
           name: string
           avatar_url: string | null
           skill_level: SkillLevel
+          work_location: WorkLocation
           created_at: string
         }
         Insert: {
@@ -37,6 +39,7 @@ export interface Database {
           name: string
           avatar_url?: string | null
           skill_level?: SkillLevel
+          work_location?: WorkLocation
           created_at?: string
         }
         Update: {
@@ -44,6 +47,7 @@ export interface Database {
           name?: string
           avatar_url?: string | null
           skill_level?: SkillLevel
+          work_location?: WorkLocation
           created_at?: string
         }
       }

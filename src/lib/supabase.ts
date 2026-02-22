@@ -19,9 +19,9 @@ export const isSupabaseConfigured = () => {
 export const VOTING_CATEGORIES = [
   { id: 'ui_design', name: 'UI Design', description: 'Visual aesthetics, polish, and consistency' },
   { id: 'ux_flow', name: 'UX Flow', description: 'Intuitive navigation and user journey' },
-  { id: 'innovation', name: 'Innovation', description: 'Creativity and uniqueness of the concept' },
-  { id: 'viability', name: 'Viability', description: 'Feasibility and real-world potential' },
-  { id: 'accessibility', name: 'Accessibility', description: 'Inclusivity and usability for all users' },
+  { id: 'innovation', name: 'Innovation', description: 'Creativity and uniqueness of the process' },
+  { id: 'viability', name: 'Presentation Skills', description: 'Clarity, confidence, and engagement of the pitch' },
+  { id: 'accessibility', name: 'Humor', description: 'How funny and entertaining the pitch or demo was' },
   { id: 'fun_factor', name: 'Fun Factor', description: 'How enjoyable and engaging the experience is' },
 ] as const
 

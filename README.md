@@ -6,7 +6,7 @@ A fun, modern web application for product design team activities where teams com
 
 - **Team Creation**: Form teams with custom names, avatars, and member lists
 - **Random Idea Generator**: Spin the wheel for hilarious project ideas or pick from curated suggestions
-- **Live Voting**: Rate projects across 6 categories (UI Design, UX Flow, Innovation, Viability, Accessibility, Fun Factor)
+- **Live Voting**: Rate projects across 6 categories (UI Design, UX Flow, Innovation, Presentation Skills, Humor, Fun Factor)
 - **Real-time Leaderboard**: Watch rankings update live as votes come in
 - **Modern UI**: Dark theme with glassmorphism effects, smooth animations, and responsive design
 
@@ -73,9 +73,9 @@ The app works without Supabase configuration! It will automatically fall back to
 |----------|-------------|
 | UI Design | Visual aesthetics, polish, and consistency |
 | UX Flow | Intuitive navigation and user journey |
-| Innovation | Creativity and uniqueness of the concept |
-| Viability | Feasibility and real-world potential |
-| Accessibility | Inclusivity and usability for all users |
+| Innovation | Creativity and uniqueness of the process |
+| Presentation Skills | Clarity, confidence, and engagement of the pitch |
+| Humor | How funny and entertaining the pitch or demo was |
 | Fun Factor | How enjoyable and engaging the experience is |
 
 ## Project Structure

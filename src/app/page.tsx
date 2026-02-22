@@ -51,7 +51,7 @@ const rules = [
   {
     icon: Trophy,
     title: "Vote & Win",
-    description: "Rate other teams on design, UX, innovation, and more. May the best vibes win!",
+    description: "Rate other teams on design, UX, presentation, humor, and more. May the best vibes win!",
   },
 ]
 
@@ -226,7 +226,7 @@ export default function Home() {
                     </div>
                     <h3 className="font-semibold text-lg mb-2">Product Design</h3>
                     <p className="text-muted-foreground text-sm">
-                      Focus on UX, UI, accessibility, and user flows
+                      Focus on UX, UI, presentation, humor, and user flows
                     </p>
                   </div>
                   <div>
@@ -349,7 +349,7 @@ export default function Home() {
               After each team presents in 2 minutes, everyone votes. No mercy, no participation trophies—just honest feedback.
             </p>
             <p className="text-white/80 max-w-2xl mx-auto">
-              Rate each project on UI Design, UX Flow, Innovation, Viability, Accessibility, and Fun Factor. 
+              Rate each project on UI Design, UX Flow, Innovation, Presentation Skills, Humor, and Fun Factor. 
               Give 1–5 stars per category. You can&apos;t vote for your own team. Only the best ideas rise to the top.
             </p>
           </motion.div>

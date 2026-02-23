@@ -6,10 +6,8 @@ import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { Sparkles, Users, UserPlus, Trophy, Crown, Settings2, Trash2, UsersRound, KeyRound, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { isVotingFinished } from "@/lib/voting-state"
-import { getEventPhase, subscribeToEventPhase, type EventPhase } from "@/lib/event-state"
+import { getEventPhase, setEventPhase as setEventPhaseFn, subscribeToEventPhase, type EventPhase } from "@/lib/event-state"
 import { getAdminMode, setAdminMode, subscribeToAdminMode } from "@/lib/admin-state"
-import { resetVoting } from "@/lib/voting-state"
 
 const baseNavItems = [
   { href: "/", label: "Welcome", icon: Sparkles, step: 1 },
@@ -24,8 +22,7 @@ const ADMIN_CODE = "vibegames2024"
 
 export function Navigation() {
   const pathname = usePathname()
-  const [showResults, setShowResults] = useState(false)
-  const [eventPhase, setEventPhase] = useState<EventPhase>("profiles")
+  const [eventPhase, setEventPhaseLocal] = useState<EventPhase>("profiles")
   const [adminMode, setAdminModeState] = useState(false)
   const [adminDropdownOpen, setAdminDropdownOpen] = useState(false)
   const adminDropdownRef = useRef<HTMLDivElement>(null)
@@ -90,21 +87,19 @@ export function Navigation() {
       "vibe-games-event-phase",
       "vibe-games-my-profile-id",
       "vibe-games-voter-name",
-      "vibe-games-voting-finished",
+      "vibe-games-pairs",
     ]
     keys.forEach((k) => localStorage.removeItem(k))
     try {
       const { supabase } = await import("@/lib/supabase")
-      const { setEventPhase } = await import("@/lib/event-state")
       await supabase.from("votes").delete().neq("id", "00000000-0000-0000-0000-000000000000")
       await supabase.from("teams").delete().neq("id", "00000000-0000-0000-0000-000000000000")
+      await supabase.from("pairs").delete().neq("id", "00000000-0000-0000-0000-000000000000")
       await supabase.from("profiles").delete().neq("id", "00000000-0000-0000-0000-000000000000")
-      await setEventPhase("profiles")
+      await setEventPhaseFn("profiles")
     } catch {
-      // Supabase may not be configured - still reset localStorage
       localStorage.setItem("vibe-games-event-phase", "profiles")
     }
-    resetVoting()
     alert("All data has been reset.")
     window.location.href = "/"
   }
@@ -167,6 +162,7 @@ export function Navigation() {
     try {
       const { supabase, isSupabaseConfigured } = await import("@/lib/supabase")
       const { pairProfiles } = await import("@/lib/pairing")
+      const { savePairs } = await import("@/lib/pairs")
       const { PROJECT_IDEAS } = await import("@/lib/project-ideas")
 
       let profiles: { id: string; name: string }[]
@@ -185,6 +181,7 @@ export function Navigation() {
       }
 
       const pairs = pairProfiles(profiles as never)
+      await savePairs(pairs)
       const profileMap = new Map(profiles.map((p) => [p.id, p]))
 
       const teamsToCreate = pairs.map((pair, i) => {
@@ -215,8 +212,7 @@ export function Navigation() {
         localStorage.setItem("vibe-games-teams", JSON.stringify([...newTeams, ...existing]))
       }
 
-      const { setEventPhase } = await import("@/lib/event-state")
-      await setEventPhase("pairings")
+      await setEventPhaseFn("pairings")
       setAdminDropdownOpen(false)
       alert(`Added ${teamsToCreate.length} fake teams. Unlock Voting on the Teams page to test. Refreshing…`)
       window.location.reload()
@@ -227,26 +223,16 @@ export function Navigation() {
   }
 
   useEffect(() => {
-    setShowResults(isVotingFinished())
-    const handleVotingStateChange = (e: CustomEvent<{ finished: boolean }>) => {
-      setShowResults(e.detail.finished)
-    }
-    window.addEventListener('voting-state-changed', handleVotingStateChange as EventListener)
-    return () => {
-      window.removeEventListener('voting-state-changed', handleVotingStateChange as EventListener)
-    }
-  }, [])
-
-  useEffect(() => {
-    getEventPhase().then(setEventPhase)
-    const unsub = subscribeToEventPhase(setEventPhase)
+    getEventPhase().then(setEventPhaseLocal)
+    const unsub = subscribeToEventPhase(setEventPhaseLocal)
     return unsub
   }, [])
 
+  const showResults = eventPhase === "results"
   const navItems = showResults ? [...baseNavItems, resultsNavItem] : baseNavItems
 
   const isTeamsDisabled = eventPhase === "profiles"
-  const isVotingDisabled = eventPhase !== "voting"
+  const isVotingDisabled = eventPhase !== "voting" && eventPhase !== "results"
 
   const getDisabledReason = (href: string) => {
     if (href === "/teams" && isTeamsDisabled) return "Complete pairing first"

@@ -13,7 +13,7 @@ import { Team, Profile, CreateTeamSafeResult } from "@/types/database"
 import { supabase } from "@/lib/supabase"
 import { setEventPhase, getEventPhase, subscribeToEventPhase } from "@/lib/event-state"
 import { getAdminMode, subscribeToAdminMode } from "@/lib/admin-state"
-import { pairProfiles } from "@/lib/pairing"
+import { fetchPairs } from "@/lib/pairs"
 
 const ADMIN_CODE = "vibegames2024"
 const PROFILES_STORAGE_KEY = "vibe-games-profiles"
@@ -37,6 +37,12 @@ function TeamsPageContent() {
   const [isUnlockingVoting, setIsUnlockingVoting] = useState(false)
   const [myProfileId, setMyProfileId] = useState<string | null>(null)
   const [partnerCreatedNotice, setPartnerCreatedNotice] = useState(false)
+  const [storedPairs, setStoredPairs] = useState<{ profileIds: string[] }[]>([])
+
+  const loadStoredPairs = useCallback(async () => {
+    const pairs = await fetchPairs()
+    setStoredPairs(pairs)
+  }, [])
 
   const loadProfiles = useCallback(async () => {
     try {
@@ -80,10 +86,11 @@ function TeamsPageContent() {
   }, [])
 
   useEffect(() => {
-    if (eventPhase === "pairings" || eventPhase === "voting") {
+    if (eventPhase !== "profiles") {
       loadProfiles()
+      loadStoredPairs()
     }
-  }, [eventPhase, loadProfiles])
+  }, [eventPhase, loadProfiles, loadStoredPairs])
 
   useEffect(() => {
     const stored = typeof window !== "undefined" ? localStorage.getItem(MY_PROFILE_ID_KEY) : null
@@ -163,9 +170,9 @@ function TeamsPageContent() {
     }
   }
 
-  const showAdminUnlockVoting = isAdmin && eventPhase !== "voting"
+  const showAdminUnlockVoting = isAdmin && eventPhase !== "voting" && eventPhase !== "results"
 
-  const pairs = (eventPhase === "pairings" || eventPhase === "voting") ? pairProfiles(profiles) : []
+  const pairs = storedPairs
   const profileMap = new Map(profiles.map((p) => [p.id, p]))
   const myPair = myProfileId ? pairs.find((p) => p.profileIds.includes(myProfileId)) : null
   const myPairMemberProfiles = myPair

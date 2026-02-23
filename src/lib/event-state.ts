@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase"
 
-export type EventPhase = "profiles" | "pairings" | "voting"
+export type EventPhase = "profiles" | "pairings" | "voting" | "results"
 
 const PHASE_STORAGE_KEY = "vibe-games-event-phase"
 

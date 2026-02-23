@@ -117,6 +117,23 @@ export interface Database {
           created_at?: string
         }
       }
+      pairs: {
+        Row: {
+          id: string
+          profile_ids: string[]
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          profile_ids: string[]
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          profile_ids?: string[]
+          created_at?: string
+        }
+      }
       votes: {
         Row: {
           id: string
@@ -149,5 +166,6 @@ export interface Database {
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"]
 export type Team = Database["public"]["Tables"]["teams"]["Row"]
+export type Pair = Database["public"]["Tables"]["pairs"]["Row"]
 export type ProjectIdea = Database["public"]["Tables"]["project_ideas"]["Row"]
 export type Vote = Database["public"]["Tables"]["votes"]["Row"]

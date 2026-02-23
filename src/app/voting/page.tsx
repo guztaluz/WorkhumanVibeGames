@@ -10,8 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Trophy, RefreshCw, CheckCircle2, PartyPopper, Trash2, ShieldAlert } from "lucide-react"
 import { Team, Vote, Profile } from "@/types/database"
 import { supabase, VotingCategory } from "@/lib/supabase"
-import { setVotingFinished, resetVoting } from "@/lib/voting-state"
-import { getEventPhase, subscribeToEventPhase } from "@/lib/event-state"
+import { getEventPhase, setEventPhase as setEventPhaseFn, subscribeToEventPhase } from "@/lib/event-state"
 import { getAdminMode, subscribeToAdminMode } from "@/lib/admin-state"
 import Link from "next/link"
 
@@ -38,11 +37,11 @@ function VotingContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [useLocalStorage, setUseLocalStorage] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
-  const [eventPhase, setEventPhase] = useState<string>("profiles")
+  const [eventPhase, setEventPhaseState] = useState<string>("profiles")
 
   useEffect(() => {
-    getEventPhase().then(setEventPhase)
-    const unsub = subscribeToEventPhase(setEventPhase)
+    getEventPhase().then(setEventPhaseState)
+    const unsub = subscribeToEventPhase(setEventPhaseState)
     return unsub
   }, [])
 
@@ -197,13 +196,14 @@ function VotingContent() {
       if (useLocalStorage) {
         localStorage.removeItem('vibe-games-teams')
         localStorage.removeItem('vibe-games-votes')
+        localStorage.removeItem('vibe-games-pairs')
       } else {
-        // Clear Supabase tables
         await supabase.from('votes').delete().neq('id', '00000000-0000-0000-0000-000000000000')
         await supabase.from('teams').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+        await supabase.from('pairs').delete().neq('id', '00000000-0000-0000-0000-000000000000')
       }
 
-      resetVoting()
+      await setEventPhaseFn("voting")
       setTeams([])
       setVotes([])
 
@@ -219,7 +219,7 @@ function VotingContent() {
     }
   }
 
-  if (eventPhase !== "voting") {
+  if (eventPhase !== "voting" && eventPhase !== "results") {
     return (
       <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
         <div className="max-w-xl w-full text-center">
@@ -367,9 +367,9 @@ function VotingContent() {
                       </div>
                       <Button 
                         className="w-full" 
-                        onClick={() => {
+                        onClick={async () => {
                           if (confirm('Finish voting and reveal the results?')) {
-                            setVotingFinished(true)
+                            await setEventPhaseFn("results")
                             router.push('/results')
                           }
                         }}

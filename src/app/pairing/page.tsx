@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils"
 import { setEventPhase, getEventPhase, subscribeToEventPhase } from "@/lib/event-state"
 import { getAdminMode, subscribeToAdminMode } from "@/lib/admin-state"
 import { pairProfiles } from "@/lib/pairing"
+import { savePairs, fetchPairs } from "@/lib/pairs"
 import type { EventPhase } from "@/lib/event-state"
 
 const ADMIN_CODE = "vibegames2024"
@@ -156,6 +157,12 @@ function PairingPageContent() {
   const [error, setError] = useState<string | null>(null)
   const [isProceeding, setIsProceeding] = useState(false)
   const [myProfileId, setMyProfileId] = useState<string | null>(null)
+  const [storedPairs, setStoredPairs] = useState<{ profileIds: string[] }[]>([])
+
+  const loadStoredPairs = useCallback(async () => {
+    const pairs = await fetchPairs()
+    setStoredPairs(pairs)
+  }, [])
 
   const loadProfiles = useCallback(async () => {
     setIsLoading(true)
@@ -179,10 +186,13 @@ function PairingPageContent() {
 
   useEffect(() => {
     loadProfiles()
-    getEventPhase().then(setEventPhaseState)
+    getEventPhase().then((phase) => {
+      setEventPhaseState(phase)
+      if (phase !== "profiles") loadStoredPairs()
+    })
     const stored = typeof window !== "undefined" ? localStorage.getItem(MY_PROFILE_ID_KEY) : null
     if (stored) setMyProfileId(stored)
-  }, [loadProfiles])
+  }, [loadProfiles, loadStoredPairs])
 
   // When we have myProfileId and profiles loaded, populate form for edit mode (once)
   const hasInitializedEdit = useRef(false)
@@ -213,11 +223,12 @@ function PairingPageContent() {
       .on("postgres_changes", { event: "*", schema: "public", table: "event_state" }, () => {
         getEventPhase().then(setEventPhaseState)
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "pairs" }, loadStoredPairs)
       .subscribe()
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [useLocalStorage, loadProfiles])
+  }, [useLocalStorage, loadProfiles, loadStoredPairs])
 
   useEffect(() => {
     const unsub = subscribeToEventPhase(setEventPhaseState)
@@ -286,11 +297,20 @@ function PairingPageContent() {
       return
     }
 
+    const trimmedName = name.trim()
+    const duplicateProfile = profiles.find(
+      (p) => p.name.toLowerCase() === trimmedName.toLowerCase() && p.id !== myProfileId
+    )
+    if (duplicateProfile) {
+      setError("That name is already taken. Try adding your last initial!")
+      return
+    }
+
     setIsSubmitting(true)
     try {
       const avatarValue = avatarUrl || null
       const profileData: Omit<Profile, "id" | "created_at"> = {
-        name: name.trim(),
+        name: trimmedName,
         avatar_url: avatarValue,
         skill_level: skillLevel,
         work_location: workLocation,
@@ -358,6 +378,9 @@ function PairingPageContent() {
   const handleAdminCreatePairs = async () => {
     setIsProceeding(true)
     try {
+      const computed = pairProfiles(profiles)
+      await savePairs(computed)
+      setStoredPairs(computed)
       await setEventPhase("pairings")
       setEventPhaseState("pairings")
     } finally {
@@ -365,9 +388,9 @@ function PairingPageContent() {
     }
   }
 
-  const phaseComplete = eventPhase === "pairings"
-  const showAdminButton = isAdmin && profiles.length >= 2 && !phaseComplete
-  const pairs = phaseComplete ? pairProfiles(profiles) : []
+  const phaseComplete = eventPhase !== "profiles"
+  const showAdminButton = isAdmin && profiles.length >= 2 && eventPhase === "profiles"
+  const pairs = storedPairs
   const profileMap = new Map(profiles.map((p) => [p.id, p]))
 
   return (

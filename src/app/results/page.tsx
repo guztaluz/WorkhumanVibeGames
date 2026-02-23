@@ -11,10 +11,11 @@ import { Trophy, Medal, Award, Star, PartyPopper, RotateCcw } from "lucide-react
 import { Team, Vote, Profile } from "@/types/database"
 import { supabase, VOTING_CATEGORIES } from "@/lib/supabase"
 import { Confetti } from "@/components/confetti"
-import { resetVoting } from "@/lib/voting-state"
+import { getEventPhase, setEventPhase as setEventPhaseFn, subscribeToEventPhase } from "@/lib/event-state"
 import { getAdminMode, subscribeToAdminMode } from "@/lib/admin-state"
 import { getEmojiFromAvatar, getEmojiBgFromAvatar, isEmojiAvatar } from "@/components/profile-avatar"
 import { cn } from "@/lib/utils"
+import Link from "next/link"
 
 const ADMIN_CODE = "vibegames2024"
 const PROFILES_STORAGE_KEY = "vibe-games-profiles"
@@ -37,12 +38,19 @@ function ResultsContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [showConfetti, setShowConfetti] = useState(true)
   const [revealStage, setRevealStage] = useState(0)
+  const [eventPhase, setEventPhaseState] = useState<string>("profiles")
 
   const isAdmin = searchParams.get("admin") === ADMIN_CODE || adminFromToggle
 
   useEffect(() => {
     setAdminFromToggle(getAdminMode())
     const unsub = subscribeToAdminMode(setAdminFromToggle)
+    return unsub
+  }, [])
+
+  useEffect(() => {
+    getEventPhase().then(setEventPhaseState)
+    const unsub = subscribeToEventPhase(setEventPhaseState)
     return unsub
   }, [])
 
@@ -91,9 +99,9 @@ function ResultsContent() {
     }
   }
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (confirm('Are you sure you want to reset and start a new voting session?')) {
-      resetVoting()
+      await setEventPhaseFn("voting")
       router.push('/voting')
     }
   }
@@ -143,6 +151,23 @@ function ResultsContent() {
 
   const getInitials = (name: string) => 
     name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+
+  if (eventPhase !== "results") {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <Card className="glass max-w-md">
+          <CardContent className="p-8 text-center">
+            <Trophy className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-xl font-bold mb-2">Results are not available yet</h2>
+            <p className="text-muted-foreground mb-6">The host hasn&apos;t finished voting yet. Head to the voting page!</p>
+            <Link href="/voting">
+              <Button size="lg">Go to Voting</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   if (isLoading) {
     return (

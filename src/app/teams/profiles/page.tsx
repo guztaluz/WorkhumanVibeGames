@@ -181,6 +181,15 @@ function ProfilesPageContent() {
       return
     }
 
+    const trimmedName = name.trim()
+    const duplicateProfile = profiles.find(
+      (p) => p.name.toLowerCase() === trimmedName.toLowerCase() && p.id !== editingId
+    )
+    if (duplicateProfile) {
+      setError("That name is already taken. Try adding your last initial!")
+      return
+    }
+
     setIsSubmitting(true)
     try {
       const avatarValue = avatarUrl || null
@@ -188,7 +197,7 @@ function ProfilesPageContent() {
         if (useLocalStorage) {
           const updated = profiles.map((p) =>
             p.id === editingId
-              ? { ...p, name: name.trim(), avatar_url: avatarValue, skill_level: skillLevel, work_location: workLocation }
+              ? { ...p, name: trimmedName, avatar_url: avatarValue, skill_level: skillLevel, work_location: workLocation }
               : p
           )
           setProfiles(updated)
@@ -197,7 +206,7 @@ function ProfilesPageContent() {
           const { error } = await supabase
             .from("profiles")
             .update({
-              name: name.trim(),
+              name: trimmedName,
               avatar_url: avatarValue,
               skill_level: skillLevel,
               work_location: workLocation,
@@ -209,7 +218,7 @@ function ProfilesPageContent() {
           const updated = [...profiles]
           updated[idx] = {
             ...updated[idx],
-            name: name.trim(),
+            name: trimmedName,
             avatar_url: avatarValue,
             skill_level: skillLevel,
             work_location: workLocation,
@@ -219,7 +228,7 @@ function ProfilesPageContent() {
         setEditingId(null)
       } else {
         const newProfile: Omit<Profile, "id" | "created_at"> = {
-          name: name.trim(),
+          name: trimmedName,
           avatar_url: avatarValue,
           skill_level: skillLevel,
           work_location: workLocation,

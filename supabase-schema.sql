@@ -7,7 +7,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Profiles table (for pairing - names, avatars, skill levels)
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name TEXT NOT NULL,
+  name TEXT NOT NULL UNIQUE,
   avatar_url TEXT,
   skill_level TEXT NOT NULL DEFAULT 'just_starting' CHECK (skill_level IN ('just_starting', 'getting_hang', 'master')),
   work_location TEXT NOT NULL DEFAULT 'in_office' CHECK (work_location IN ('remote', 'in_office')),
@@ -30,7 +30,7 @@ END $$;
 -- Event state (current phase: profiles, pairings, voting)
 CREATE TABLE IF NOT EXISTS event_state (
   id TEXT PRIMARY KEY DEFAULT 'default',
-  current_phase TEXT NOT NULL DEFAULT 'profiles' CHECK (current_phase IN ('profiles', 'pairings', 'voting')),
+  current_phase TEXT NOT NULL DEFAULT 'profiles' CHECK (current_phase IN ('profiles', 'pairings', 'voting', 'results')),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 INSERT INTO event_state (id, current_phase) VALUES ('default', 'profiles') ON CONFLICT (id) DO NOTHING;
@@ -54,6 +54,13 @@ CREATE TABLE IF NOT EXISTS project_ideas (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Pairs table (persisted pairings created by admin)
+CREATE TABLE IF NOT EXISTS pairs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  profile_ids UUID[] NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Votes table
 CREATE TABLE IF NOT EXISTS votes (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -69,6 +76,7 @@ CREATE TABLE IF NOT EXISTS votes (
 -- Enable Row Level Security
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE event_state ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pairs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE project_ideas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE votes ENABLE ROW LEVEL SECURITY;
@@ -77,6 +85,8 @@ ALTER TABLE votes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow all operations on profiles" ON profiles
   FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all operations on event_state" ON event_state
+  FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all operations on pairs" ON pairs
   FOR ALL USING (true) WITH CHECK (true);
 
 -- Policies for teams (allow all operations for now - simple setup)
@@ -137,6 +147,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE votes;
 ALTER PUBLICATION supabase_realtime ADD TABLE teams;
 ALTER PUBLICATION supabase_realtime ADD TABLE profiles;
 ALTER PUBLICATION supabase_realtime ADD TABLE event_state;
+ALTER PUBLICATION supabase_realtime ADD TABLE pairs;
 
 -- Seed project ideas
 INSERT INTO project_ideas (title, description, is_random_pool) VALUES

@@ -14,7 +14,7 @@ import { Team } from "@/types/database"
 import { getEmojiFromAvatar, getEmojiBgFromAvatar, isEmojiAvatar } from "@/components/profile-avatar"
 import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabase"
-import { pairProfiles } from "@/lib/pairing"
+import { fetchPairs } from "@/lib/pairs"
 import { PROJECT_IDEAS } from "@/lib/project-ideas"
 
 const PROFILES_STORAGE_KEY = "vibe-games-profiles"
@@ -33,8 +33,8 @@ export default function PairingsPage() {
   const [teamIdeas, setTeamIdeas] = useState<Record<number, string>>({})
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [pairs, setPairs] = useState<{ profileIds: string[] }[]>([])
 
-  const pairs = pairProfiles(profiles)
   const profileMap = new Map(profiles.map((p) => [p.id, p]))
 
   useEffect(() => {
@@ -65,6 +65,9 @@ export default function PairingsPage() {
     } finally {
       setIsLoading(false)
     }
+
+    const storedPairs = await fetchPairs()
+    setPairs(storedPairs)
   }
 
   const handleTeamNameChange = (pairIndex: number, value: string) => {

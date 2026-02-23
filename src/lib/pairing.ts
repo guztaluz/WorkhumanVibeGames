@@ -54,6 +54,16 @@ function pairWithinGroup(profiles: Profile[]): { profileIds: string[] }[] {
  * Within each group, keeps the same skill-based logic: each team has at least one
  * higher-skilled and one lower-skilled member.
  */
+export function pairLateJoiners(
+  allProfiles: Profile[],
+  existingPairs: { profileIds: string[] }[]
+): { profileIds: string[] }[] {
+  const pairedIds = new Set(existingPairs.flatMap((p) => p.profileIds))
+  const unpaired = allProfiles.filter((p) => !pairedIds.has(p.id))
+  if (unpaired.length < 2) return []
+  return pairProfiles(unpaired)
+}
+
 export function pairProfiles(profiles: Profile[]): { profileIds: string[] }[] {
   if (profiles.length < 2) return []
 

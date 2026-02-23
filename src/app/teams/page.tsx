@@ -72,6 +72,13 @@ function TeamsPageContent() {
           loadTeams()
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "pairs" },
+        () => {
+          loadStoredPairs()
+        }
+      )
       .subscribe()
 
     return () => {

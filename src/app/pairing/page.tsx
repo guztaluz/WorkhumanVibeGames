@@ -27,8 +27,8 @@ import { ProfileAvatar, getEmojiFromAvatar, getEmojiBgFromAvatar, isEmojiAvatar 
 import { cn } from "@/lib/utils"
 import { setEventPhase, getEventPhase, subscribeToEventPhase } from "@/lib/event-state"
 import { getAdminMode, subscribeToAdminMode } from "@/lib/admin-state"
-import { pairProfiles } from "@/lib/pairing"
-import { savePairs, fetchPairs } from "@/lib/pairs"
+import { pairProfiles, pairLateJoiners } from "@/lib/pairing"
+import { savePairs, appendPairs, fetchPairs } from "@/lib/pairs"
 import type { EventPhase } from "@/lib/event-state"
 
 const ADMIN_CODE = "vibegames2024"
@@ -388,10 +388,26 @@ function PairingPageContent() {
     }
   }
 
+  const handlePairLateJoiners = async () => {
+    setIsProceeding(true)
+    try {
+      const newPairs = pairLateJoiners(profiles, storedPairs)
+      if (newPairs.length === 0) return
+      await appendPairs(newPairs)
+      setStoredPairs((prev) => [...prev, ...newPairs])
+    } finally {
+      setIsProceeding(false)
+    }
+  }
+
   const phaseComplete = eventPhase !== "profiles"
   const showAdminButton = isAdmin && profiles.length >= 2 && eventPhase === "profiles"
   const pairs = storedPairs
   const profileMap = new Map(profiles.map((p) => [p.id, p]))
+  const pairedIds = new Set(storedPairs.flatMap((p) => p.profileIds))
+  const unpairedProfiles = profiles.filter((p) => !pairedIds.has(p.id))
+  const showLateJoinerButton = isAdmin && phaseComplete && unpairedProfiles.length >= 2
+  const myProfileIsUnpaired = myProfileId ? !pairedIds.has(myProfileId) : false
 
   return (
     <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8">
@@ -617,6 +633,56 @@ function PairingPageContent() {
                     </Button>
                   </Link>
                 </div>
+              </motion.div>
+            )}
+
+            {/* Admin: Pair late joiners */}
+            {showLateJoinerButton && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-2xl border-2 border-amber-500/30 bg-amber-500/10 p-6"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <UserPlus className="w-5 h-5 text-amber-600" />
+                  <span className="font-semibold text-amber-700 dark:text-amber-400">
+                    Late joiners
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {unpairedProfiles.length} unpaired player{unpairedProfiles.length !== 1 ? "s" : ""} can be paired now.
+                </p>
+                <Button
+                  onClick={handlePairLateJoiners}
+                  disabled={isProceeding}
+                  className="w-full bg-amber-600 hover:bg-amber-700"
+                  size="lg"
+                >
+                  {isProceeding ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Pairing late joiners...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      Pair Late Joiners ({unpairedProfiles.length})
+                    </>
+                  )}
+                </Button>
+              </motion.div>
+            )}
+
+            {/* Info for unpaired non-admin players */}
+            {!isAdmin && phaseComplete && myProfileIsUnpaired && myProfileId && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-xl border border-blue-500/20 bg-blue-500/10 p-4"
+              >
+                <p className="text-sm text-blue-700 dark:text-blue-400 text-center">
+                  You&apos;re not paired yet — the host can add you in the next round.
+                </p>
               </motion.div>
             )}
           </div>

@@ -26,6 +26,28 @@ export async function savePairs(
   }
 }
 
+export async function appendPairs(
+  pairs: { profileIds: string[] }[]
+): Promise<void> {
+  try {
+    const rows = pairs.map((p) => ({ profile_ids: p.profileIds }))
+    const { error } = await supabase.from("pairs").insert(rows as never)
+    if (error) throw error
+
+    if (typeof window !== "undefined") {
+      const existing = localStorage.getItem(PAIRS_STORAGE_KEY)
+      const prev = existing ? (JSON.parse(existing) as { profileIds: string[] }[]) : []
+      localStorage.setItem(PAIRS_STORAGE_KEY, JSON.stringify([...prev, ...pairs]))
+    }
+  } catch {
+    if (typeof window !== "undefined") {
+      const existing = localStorage.getItem(PAIRS_STORAGE_KEY)
+      const prev = existing ? (JSON.parse(existing) as { profileIds: string[] }[]) : []
+      localStorage.setItem(PAIRS_STORAGE_KEY, JSON.stringify([...prev, ...pairs]))
+    }
+  }
+}
+
 export async function fetchPairs(): Promise<{ profileIds: string[] }[]> {
   try {
     const { data, error } = await supabase

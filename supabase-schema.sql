@@ -1,5 +1,5 @@
--- Supabase Schema for Vibe Games
--- Run this SQL in your Supabase SQL Editor to set up the database
+-- Supabase Schema for Vibe Games (idempotent)
+-- Run this SQL in your Supabase SQL Editor
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -10,29 +10,29 @@ CREATE TABLE IF NOT EXISTS profiles (
   name TEXT NOT NULL UNIQUE,
   avatar_url TEXT,
   skill_level TEXT NOT NULL DEFAULT 'just_starting' CHECK (skill_level IN ('just_starting', 'getting_hang', 'master')),
-  work_location TEXT NOT NULL DEFAULT 'in_office' CHECK (work_location IN ('remote', 'in_office')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Migration: add work_location if missing (for existing databases)
+-- Migration: add work_location column if missing (added after initial schema)
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS work_location TEXT NOT NULL DEFAULT 'in_office';
+
+-- Migration: enforce unique profile names (safe if already exists)
 DO $$
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_name = 'profiles' AND column_name = 'work_location'
-  ) THEN
-    ALTER TABLE profiles
-      ADD COLUMN work_location TEXT NOT NULL DEFAULT 'in_office'
-      CHECK (work_location IN ('remote', 'in_office'));
-  END IF;
+  ALTER TABLE profiles ADD CONSTRAINT profiles_name_unique UNIQUE (name);
+EXCEPTION WHEN duplicate_table THEN NULL;
 END $$;
 
--- Event state (current phase: profiles, pairings, voting)
+-- Event state (current phase: profiles, pairings, voting, results)
+-- Migration: widen the CHECK constraint to include 'results'
+ALTER TABLE event_state DROP CONSTRAINT IF EXISTS event_state_current_phase_check;
 CREATE TABLE IF NOT EXISTS event_state (
   id TEXT PRIMARY KEY DEFAULT 'default',
   current_phase TEXT NOT NULL DEFAULT 'profiles' CHECK (current_phase IN ('profiles', 'pairings', 'voting', 'results')),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+ALTER TABLE event_state ADD CONSTRAINT event_state_current_phase_check
+  CHECK (current_phase IN ('profiles', 'pairings', 'voting', 'results'));
 INSERT INTO event_state (id, current_phase) VALUES ('default', 'profiles') ON CONFLICT (id) DO NOTHING;
 
 -- Teams table
@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS teams (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Project ideas table (pre-seeded suggestions)
+-- Project ideas table
 CREATE TABLE IF NOT EXISTS project_ideas (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   title TEXT NOT NULL,
@@ -69,7 +69,6 @@ CREATE TABLE IF NOT EXISTS votes (
   category TEXT NOT NULL,
   score INTEGER NOT NULL CHECK (score >= 1 AND score <= 5),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  -- Ensure one vote per voter per team per category
   UNIQUE(voter_name, team_id, category)
 );
 
@@ -81,29 +80,26 @@ ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE project_ideas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE votes ENABLE ROW LEVEL SECURITY;
 
--- Policies for profiles and event_state
-CREATE POLICY "Allow all operations on profiles" ON profiles
-  FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all operations on event_state" ON event_state
-  FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all operations on pairs" ON pairs
-  FOR ALL USING (true) WITH CHECK (true);
+-- Drop policies if they exist, then create them
+DROP POLICY IF EXISTS "Allow all operations on profiles" ON profiles;
+CREATE POLICY "Allow all operations on profiles" ON profiles FOR ALL USING (true) WITH CHECK (true);
 
--- Policies for teams (allow all operations for now - simple setup)
-CREATE POLICY "Allow all operations on teams" ON teams
-  FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Allow all operations on event_state" ON event_state;
+CREATE POLICY "Allow all operations on event_state" ON event_state FOR ALL USING (true) WITH CHECK (true);
 
--- Policies for project_ideas (read only for users)
-CREATE POLICY "Allow read on project_ideas" ON project_ideas
-  FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow all operations on pairs" ON pairs;
+CREATE POLICY "Allow all operations on pairs" ON pairs FOR ALL USING (true) WITH CHECK (true);
 
--- Policies for votes (allow all operations)
-CREATE POLICY "Allow all operations on votes" ON votes
-  FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Allow all operations on teams" ON teams;
+CREATE POLICY "Allow all operations on teams" ON teams FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow read on project_ideas" ON project_ideas;
+CREATE POLICY "Allow read on project_ideas" ON project_ideas FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Allow all operations on votes" ON votes;
+CREATE POLICY "Allow all operations on votes" ON votes FOR ALL USING (true) WITH CHECK (true);
 
 -- Safe team creation function (prevents duplicate teams for paired members)
--- Atomically checks if any member already belongs to a team before inserting.
--- Returns { success: true, team: ... } or { success: false, reason: 'member_already_in_team', existing_team: ... }
 CREATE OR REPLACE FUNCTION create_team_safe(
   p_name TEXT,
   p_avatar_url TEXT,
@@ -116,7 +112,6 @@ DECLARE
   v_existing_team teams%ROWTYPE;
   v_new_team teams%ROWTYPE;
 BEGIN
-  -- Lock all teams that share any member to serialize concurrent access
   SELECT * INTO v_existing_team
   FROM teams
   WHERE members && p_members
@@ -142,14 +137,34 @@ BEGIN
 END;
 $$;
 
--- Enable realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE votes;
-ALTER PUBLICATION supabase_realtime ADD TABLE teams;
-ALTER PUBLICATION supabase_realtime ADD TABLE profiles;
-ALTER PUBLICATION supabase_realtime ADD TABLE event_state;
-ALTER PUBLICATION supabase_realtime ADD TABLE pairs;
+-- Enable realtime (ignore if already added)
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE profiles;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE event_state;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE votes;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE teams;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE pairs;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
--- Seed project ideas
+-- Seed project ideas (skips if conflict)
 INSERT INTO project_ideas (title, description, is_random_pool) VALUES
   ('Plant Dating App', 'A dating app for house plants - swipe right if your fern is compatible with their succulent!', true),
   ('Pet Rock Walker', 'Uber but for people who walk your pet rock. Premium service includes rock polishing.', true),

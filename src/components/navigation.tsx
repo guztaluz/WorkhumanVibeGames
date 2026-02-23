@@ -115,11 +115,13 @@ export function Navigation() {
   const FAKE_SKILLS = ["just_starting", "getting_hang", "master"] as const
 
   const handleAddFakeProfiles = async () => {
+    const WORK_LOCATIONS = ["remote", "in_office"] as const
     const fakeProfiles = FAKE_NAMES.map((name, i) => ({
       id: crypto.randomUUID(),
       name,
       avatar_url: `emoji:${FAKE_EMOJIS[i % FAKE_EMOJIS.length]}`,
       skill_level: FAKE_SKILLS[i % 3],
+      work_location: WORK_LOCATIONS[Math.random() < 0.5 ? 0 : 1],
       created_at: new Date().toISOString(),
     }))
     try {
@@ -129,6 +131,7 @@ export function Navigation() {
           name: p.name,
           avatar_url: p.avatar_url,
           skill_level: p.skill_level,
+          work_location: p.work_location,
         }))
         const { error } = await supabase.from("profiles").insert(rows as never)
         if (error) throw error
@@ -165,11 +168,11 @@ export function Navigation() {
       const { savePairs } = await import("@/lib/pairs")
       const { PROJECT_IDEAS } = await import("@/lib/project-ideas")
 
-      let profiles: { id: string; name: string }[]
+      let profiles: { id: string; name: string; skill_level: string; work_location: string }[]
       if (isSupabaseConfigured()) {
-        const { data, error } = await supabase.from("profiles").select("id, name")
+        const { data, error } = await supabase.from("profiles").select("id, name, skill_level, work_location")
         if (error) throw error
-        profiles = (data as { id: string; name: string }[]) || []
+        profiles = (data as { id: string; name: string; skill_level: string; work_location: string }[]) || []
       } else {
         const stored = localStorage.getItem("vibe-games-profiles")
         profiles = stored ? JSON.parse(stored) : []
@@ -199,17 +202,20 @@ export function Navigation() {
       })
 
       if (isSupabaseConfigured()) {
+        await supabase.from("teams").delete().in("name", FAKE_TEAM_NAMES)
         const { error } = await supabase.from("teams").insert(teamsToCreate as never)
         if (error) throw error
       } else {
         const stored = localStorage.getItem("vibe-games-teams")
-        const existing = stored ? JSON.parse(stored) : []
+        const existing: { name: string }[] = stored ? JSON.parse(stored) : []
+        const fakeNameSet = new Set(FAKE_TEAM_NAMES)
+        const filtered = existing.filter((t) => !fakeNameSet.has(t.name))
         const newTeams = teamsToCreate.map((t) => ({
           ...t,
           id: crypto.randomUUID(),
           created_at: new Date().toISOString(),
         }))
-        localStorage.setItem("vibe-games-teams", JSON.stringify([...newTeams, ...existing]))
+        localStorage.setItem("vibe-games-teams", JSON.stringify([...newTeams, ...filtered]))
       }
 
       await setEventPhaseFn("pairings")
@@ -218,7 +224,8 @@ export function Navigation() {
       window.location.reload()
     } catch (e) {
       console.error(e)
-      alert("Failed to add fake teams. Make sure you have profiles (add fake profiles first).")
+      const msg = e instanceof Error ? e.message : String(e)
+      alert(`Failed to add fake teams: ${msg}`)
     }
   }
 

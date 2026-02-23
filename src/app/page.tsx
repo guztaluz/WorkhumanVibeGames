@@ -51,7 +51,7 @@ const rules = [
   {
     icon: Trophy,
     title: "Vote & Win",
-    description: "Rate other teams on design, UX, presentation, humor, and more. May the best vibes win!",
+    description: "Rate other teams on design, UX, presentation, humour, and more. May the best vibes win!",
   },
 ]
 
@@ -226,7 +226,7 @@ export default function Home() {
                     </div>
                     <h3 className="font-semibold text-lg mb-2">Product Design</h3>
                     <p className="text-muted-foreground text-sm">
-                      Focus on UX, UI, presentation, humor, and user flows
+                      Focus on UX, UI, presentation, humour, and user flows
                     </p>
                   </div>
                   <div>
@@ -298,7 +298,7 @@ export default function Home() {
             transition={{ duration: 0.5 }}
             className="text-center mb-12 px-4 sm:px-6"
           >
-            <h2 className="font-display text-3xl sm:text-4xl font-thin mb-4">Build with Your Favorite AI Tools</h2>
+            <h2 className="font-display text-3xl sm:text-4xl font-thin mb-4">Build with Your Favourite AI Tools</h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Use Cursor, Claude, Replit, V0, Lovable, or any tool you&apos;re comfortable with. The idea is to work together, collaborate, and learn from each other—no restrictions, just vibes.
             </p>
@@ -349,7 +349,7 @@ export default function Home() {
               After each team presents in 2 minutes, everyone votes. No mercy, no participation trophies—just honest feedback.
             </p>
             <p className="text-white/80 max-w-2xl mx-auto">
-              Rate each project on UI Design, UX Flow, Innovation, Presentation Skills, Humor, and Fun Factor. 
+              Rate each project on UI Design, UX Flow, Innovation, Presentation Skills, Humour, and Completeness. 
               Give 1–5 stars per category. You can&apos;t vote for your own team. Only the best ideas rise to the top.
             </p>
           </motion.div>

@@ -21,8 +21,8 @@ export const VOTING_CATEGORIES = [
   { id: 'ux_flow', name: 'UX Flow', description: 'Intuitive navigation and user journey' },
   { id: 'innovation', name: 'Innovation', description: 'Creativity and uniqueness of the process' },
   { id: 'viability', name: 'Presentation Skills', description: 'Clarity, confidence, and engagement of the pitch' },
-  { id: 'accessibility', name: 'Humor', description: 'How funny and entertaining the pitch or demo was' },
-  { id: 'fun_factor', name: 'Fun Factor', description: 'How enjoyable and engaging the experience is' },
+  { id: 'accessibility', name: 'Humour', description: 'How funny and entertaining the pitch or demo was' },
+  { id: 'fun_factor', name: 'Completeness', description: 'How finished and polished the final product feels' },
 ] as const
 
 export type VotingCategory = typeof VOTING_CATEGORIES[number]['id']

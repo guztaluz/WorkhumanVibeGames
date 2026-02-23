@@ -250,8 +250,14 @@ function ProfilesPageContent() {
       setAvatarUrl(null)
       setSkillLevel("just_starting")
       setWorkLocation("in_office")
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save profile")
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === "object" && err !== null && "message" in err
+            ? String((err as { message: unknown }).message)
+            : "Failed to save profile"
+      setError(message)
     } finally {
       setIsSubmitting(false)
     }

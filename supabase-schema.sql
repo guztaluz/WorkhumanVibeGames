@@ -14,6 +14,19 @@ CREATE TABLE IF NOT EXISTS profiles (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Migration: add work_location if missing (for existing databases)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'profiles' AND column_name = 'work_location'
+  ) THEN
+    ALTER TABLE profiles
+      ADD COLUMN work_location TEXT NOT NULL DEFAULT 'in_office'
+      CHECK (work_location IN ('remote', 'in_office'));
+  END IF;
+END $$;
+
 -- Event state (current phase: profiles, pairings, voting)
 CREATE TABLE IF NOT EXISTS event_state (
   id TEXT PRIMARY KEY DEFAULT 'default',

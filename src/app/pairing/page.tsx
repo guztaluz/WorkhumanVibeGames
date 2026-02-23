@@ -342,8 +342,14 @@ function PairingPageContent() {
           }
         }
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save")
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === "object" && err !== null && "message" in err
+            ? String((err as { message: unknown }).message)
+            : "Failed to save"
+      setError(message)
     } finally {
       setIsSubmitting(false)
     }

@@ -134,6 +134,23 @@ export interface Database {
           created_at?: string
         }
       }
+      ger_claps: {
+        Row: {
+          id: string
+          count: number
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          count?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          count?: number
+          updated_at?: string
+        }
+      }
       votes: {
         Row: {
           id: string

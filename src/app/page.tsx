@@ -1,11 +1,12 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useRef, useState, useEffect, useCallback } from "react"
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion"
+import { supabase } from "@/lib/supabase"
 import { ToolLogo } from "@/components/tool-logo"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Sparkles, Users, Trophy, Zap, Target, Palette, ArrowRight, UserPlus, Lightbulb, Heart } from "lucide-react"
+import { Sparkles, Users, Trophy, Zap, Target, Palette, ArrowRight, UserPlus, Lightbulb } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 
@@ -71,8 +72,9 @@ const item = {
 }
 
 function ThanksGerBadge() {
-  const [thanked, setThanked] = useState(false)
-  const [clickCount, setClickCount] = useState(0)
+  const [claps, setClaps] = useState<number | null>(null)
+  const [justClapped, setJustClapped] = useState(false)
+  const [localBurst, setLocalBurst] = useState(0)
 
   const messages = [
     "Thanks, Ger!",
@@ -83,15 +85,46 @@ function ThanksGerBadge() {
     "Name a building after him",
     "OK that's enough",
   ]
+  const [msgIndex, setMsgIndex] = useState(0)
 
-  const handleClick = () => {
-    setThanked(true)
-    setClickCount((c) => Math.min(c + 1, messages.length - 1))
-  }
+  useEffect(() => {
+    supabase
+      .from("ger_claps")
+      .select("count")
+      .eq("id", "default")
+      .single()
+      .then(({ data }) => {
+        if (data) setClaps(data.count)
+      })
+
+    const channel = supabase
+      .channel("ger-claps-realtime")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "ger_claps", filter: "id=eq.default" },
+        (payload) => {
+          setClaps(payload.new.count)
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [])
+
+  const handleClap = useCallback(async () => {
+    setClaps((c) => (c ?? 0) + 1)
+    setJustClapped(true)
+    setLocalBurst((b) => b + 1)
+    setMsgIndex((i) => Math.min(i + 1, messages.length - 1))
+
+    await supabase.rpc("increment_ger_claps")
+
+    setTimeout(() => setJustClapped(false), 600)
+  }, [messages.length])
 
   return (
     <button
-      onClick={handleClick}
+      onClick={handleClap}
       className="group relative flex items-center gap-3 px-5 py-2.5 rounded-full border border-border/50 bg-card/60 hover:border-primary/40 hover:bg-card/90 transition-all duration-300 cursor-pointer"
     >
       <div className="relative">
@@ -100,44 +133,35 @@ function ThanksGerBadge() {
           alt="Ger"
           className="w-10 h-10 rounded-full object-cover border-2 border-primary/30 group-hover:border-primary/60 transition-colors"
         />
-        <AnimatePresence>
-          {thanked && (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary flex items-center justify-center"
-            >
-              <Heart className="w-3 h-3 text-white fill-white" />
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
-      <div className="text-left">
+      <div className="text-left min-w-[140px]">
         <AnimatePresence mode="wait">
           <motion.span
-            key={clickCount}
+            key={localBurst > 0 ? msgIndex : "initial"}
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -5 }}
             transition={{ duration: 0.2 }}
             className="text-sm font-medium block"
           >
-            {thanked ? messages[clickCount] : "Thanks, Ger!"}
+            {localBurst > 0 ? messages[msgIndex] : "Thanks, Ger!"}
           </motion.span>
         </AnimatePresence>
         <span className="text-xs text-muted-foreground">
-          {thanked ? "for the Lovable licenses" : "Tap to thank him for the licenses"}
+          {claps !== null ? `${claps.toLocaleString()} clap${claps !== 1 ? "s" : ""}` : "Tap to clap for the licenses"}
         </span>
       </div>
       <AnimatePresence>
-        {thanked && (
+        {justClapped && (
           <motion.span
-            initial={{ scale: 0, rotate: -20 }}
-            animate={{ scale: 1, rotate: 0 }}
+            key={localBurst}
+            initial={{ scale: 0, y: 0 }}
+            animate={{ scale: 1.3, y: -10 }}
+            exit={{ scale: 0, y: -20, opacity: 0 }}
             transition={{ type: "spring", stiffness: 400, damping: 15 }}
-            className="text-lg"
+            className="text-lg absolute -top-2 right-3"
           >
-            🎉
+            👏
           </motion.span>
         )}
       </AnimatePresence>

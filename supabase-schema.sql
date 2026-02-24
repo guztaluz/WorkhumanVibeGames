@@ -137,6 +137,27 @@ BEGIN
 END;
 $$;
 
+-- Ger claps counter (live "thanks" counter on the homepage)
+CREATE TABLE IF NOT EXISTS ger_claps (
+  id TEXT PRIMARY KEY DEFAULT 'default',
+  count INTEGER NOT NULL DEFAULT 0,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+INSERT INTO ger_claps (id, count) VALUES ('default', 0) ON CONFLICT (id) DO NOTHING;
+
+ALTER TABLE ger_claps ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow all operations on ger_claps" ON ger_claps;
+CREATE POLICY "Allow all operations on ger_claps" ON ger_claps FOR ALL USING (true) WITH CHECK (true);
+
+CREATE OR REPLACE FUNCTION increment_ger_claps()
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  UPDATE ger_claps SET count = count + 1, updated_at = NOW() WHERE id = 'default';
+END;
+$$;
+
 -- Enable realtime (ignore if already added)
 DO $$
 BEGIN
@@ -161,6 +182,11 @@ END $$;
 DO $$
 BEGIN
   ALTER PUBLICATION supabase_realtime ADD TABLE pairs;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE ger_claps;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 

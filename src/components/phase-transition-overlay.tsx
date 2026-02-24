@@ -1,8 +1,7 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { useRouter } from "next/navigation"
 import { Trophy, PartyPopper, Vote, Users } from "lucide-react"
 import type { EventPhase } from "@/lib/event-state"
 
@@ -55,7 +54,6 @@ export function PhaseTransitionOverlay({
   currentPhase,
   isAdmin,
 }: PhaseTransitionOverlayProps) {
-  const router = useRouter()
   const [active, setActive] = useState(false)
   const [countdown, setCountdown] = useState<number | null>(null)
   const [config, setConfig] = useState<PhaseConfig | null>(null)
@@ -86,14 +84,15 @@ export function PhaseTransitionOverlay({
 
     if (countdown === 0) {
       const timer = setTimeout(() => {
-        if (config) router.push(config.route)
+        setActive(false)
+        if (config) window.location.href = config.route
       }, 400)
       return () => clearTimeout(timer)
     }
 
     const timer = setTimeout(() => setCountdown((c) => (c !== null ? c - 1 : null)), 1000)
     return () => clearTimeout(timer)
-  }, [countdown, active, config, router])
+  }, [countdown, active, config])
 
   return (
     <AnimatePresence>
@@ -181,15 +180,21 @@ export function PhaseTransitionOverlay({
 /**
  * Hook to track phase transitions for use with PhaseTransitionOverlay.
  * Returns the previous phase value whenever `eventPhase` changes.
+ * Ignores the first change (the initial subscription catch-up) so the
+ * overlay doesn't fire on page load or after navigation.
  */
 export function usePreviousPhase(eventPhase: EventPhase): EventPhase | null {
   const [prev, setPrev] = useState<EventPhase | null>(null)
   const [current, setCurrent] = useState<EventPhase>(eventPhase)
+  const settled = useRef(false)
 
   useEffect(() => {
     if (eventPhase !== current) {
-      setPrev(current)
+      if (settled.current) {
+        setPrev(current)
+      }
       setCurrent(eventPhase)
+      settled.current = true
     }
   }, [eventPhase, current])
 

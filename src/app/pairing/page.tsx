@@ -408,6 +408,8 @@ function PairingPageContent() {
   const unpairedProfiles = profiles.filter((p) => !pairedIds.has(p.id))
   const showLateJoinerButton = isAdmin && phaseComplete && unpairedProfiles.length >= 2
   const myProfileIsUnpaired = myProfileId ? !pairedIds.has(myProfileId) : false
+  const profileLocked = phaseComplete && !!myProfileId
+  const myProfile = myProfileId ? profileMap.get(myProfileId) ?? profiles.find((p) => p.id === myProfileId) : null
 
   return (
     <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8">
@@ -433,114 +435,166 @@ function PairingPageContent() {
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Left Column - Profile form + Groups when created */}
           <div className="space-y-8">
-            {/* Profile form */}
+            {/* Profile form or locked profile */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
             >
-              <Card className="border border-border bg-card overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 relative">
-                    <Sparkles className="w-5 h-5 text-primary" />
-                    {myProfileId ? "Edit your profile" : "Create profile"}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="relative">
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    <ProfileAvatar
-                      value={avatarUrl}
-                      onChange={setAvatarUrl}
-                      name={name}
-                      avatarMode={avatarMode}
-                      onModeChange={setAvatarMode}
-                    />
-
-                    <div className="space-y-2">
-                      <Label htmlFor="pairing-name">Your name *</Label>
-                      <Input
-                        id="pairing-name"
-                        placeholder="e.g. Maria, John..."
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="bg-secondary/50"
+              {profileLocked && myProfile ? (
+                <Card className="border border-primary/30 bg-primary/5 overflow-hidden">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 relative">
+                      <Lock className="w-5 h-5 text-primary" />
+                      Your profile
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="relative space-y-4">
+                    <div className="flex items-center gap-4">
+                      {(() => {
+                        const emoji = getEmojiFromAvatar(myProfile.avatar_url)
+                        const emojiBg = getEmojiBgFromAvatar(myProfile.avatar_url)
+                        const imageSrc =
+                          myProfile.avatar_url && !isEmojiAvatar(myProfile.avatar_url)
+                            ? myProfile.avatar_url
+                            : undefined
+                        return emoji ? (
+                          <div
+                            className={cn(
+                              "flex size-16 shrink-0 items-center justify-center rounded-full text-3xl ring-2 ring-background",
+                              !emojiBg && "bg-primary/10"
+                            )}
+                            style={emojiBg ? { backgroundColor: `#${emojiBg}` } : undefined}
+                          >
+                            {emoji}
+                          </div>
+                        ) : (
+                          <Avatar className="size-16 shrink-0 ring-2 ring-background">
+                            <AvatarImage src={imageSrc} alt={myProfile.name} />
+                            <AvatarFallback className="bg-gradient-to-br from-primary/30 to-accent/30 text-primary font-medium text-lg">
+                              {myProfile.name.slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                        )
+                      })()}
+                      <div>
+                        <p className="text-lg font-semibold">{myProfile.name}</p>
+                        <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                          <span>{SKILL_OPTIONS.find((o) => o.value === myProfile.skill_level)?.emoji} {SKILL_OPTIONS.find((o) => o.value === myProfile.skill_level)?.label}</span>
+                          <span>{WORK_LOCATION_OPTIONS.find((o) => o.value === (myProfile.work_location ?? "in_office"))?.emoji} {WORK_LOCATION_OPTIONS.find((o) => o.value === (myProfile.work_location ?? "in_office"))?.label}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 rounded-lg bg-primary/10 border border-primary/20 px-3 py-2 text-sm text-primary">
+                      <Lock className="w-4 h-4 shrink-0" />
+                      <span>Pairings have been created — your profile is locked.</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="border border-border bg-card overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 relative">
+                      <Sparkles className="w-5 h-5 text-primary" />
+                      {myProfileId ? "Edit your profile" : "Create profile"}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="relative">
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                      <ProfileAvatar
+                        value={avatarUrl}
+                        onChange={setAvatarUrl}
+                        name={name}
+                        avatarMode={avatarMode}
+                        onModeChange={setAvatarMode}
                       />
-                    </div>
 
-                    <div className="space-y-3">
-                      <Label>Where are you working?</Label>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        {WORK_LOCATION_OPTIONS.map((opt) => (
-                          <motion.button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => setWorkLocation(opt.value)}
-                            whileHover={{ scale: 1.02, y: -2 }}
-                            whileTap={{ scale: 0.98 }}
-                            className={`flex flex-col items-center gap-2 rounded-2xl border-2 p-5 text-center transition-all ${
-                              workLocation === opt.value
-                                ? "border-primary bg-primary/15 shadow-lg shadow-primary/10"
-                                : "border-border bg-secondary/30 hover:border-primary/40"
-                            }`}
-                          >
-                            <span className="text-4xl">{opt.emoji}</span>
-                            <span className="font-semibold text-sm">{opt.label}</span>
-                          </motion.button>
-                        ))}
+                      <div className="space-y-2">
+                        <Label htmlFor="pairing-name">Your name *</Label>
+                        <Input
+                          id="pairing-name"
+                          placeholder="e.g. Maria, John..."
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          className="bg-secondary/50"
+                        />
                       </div>
-                    </div>
 
-                    <div className="space-y-3">
-                      <Label className="flex items-center gap-2">
-                        <Zap className="w-4 h-4 text-primary" />
-                        What&apos;s your vibe coding proficiency level?
-                      </Label>
-                      <div className="grid gap-3 sm:grid-cols-3">
-                        {SKILL_OPTIONS.map((opt) => (
-                          <motion.button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => setSkillLevel(opt.value)}
-                            whileHover={{ scale: 1.02, y: -2 }}
-                            whileTap={{ scale: 0.98 }}
-                            className={`flex flex-col items-center gap-2 rounded-2xl border-2 p-5 text-center transition-all ${
-                              skillLevel === opt.value
-                                ? "border-primary bg-primary/15 shadow-lg shadow-primary/10"
-                                : "border-border bg-secondary/30 hover:border-primary/40"
-                            }`}
-                          >
-                            <span className="text-4xl">{opt.emoji}</span>
-                            <span className="font-semibold text-sm">{opt.label}</span>
-                            <span className="text-xs text-muted-foreground">{opt.description}</span>
-                          </motion.button>
-                        ))}
+                      <div className="space-y-3">
+                        <Label>Where are you working?</Label>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {WORK_LOCATION_OPTIONS.map((opt) => (
+                            <motion.button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => setWorkLocation(opt.value)}
+                              whileHover={{ scale: 1.02, y: -2 }}
+                              whileTap={{ scale: 0.98 }}
+                              className={`flex flex-col items-center gap-2 rounded-2xl border-2 p-5 text-center transition-all ${
+                                workLocation === opt.value
+                                  ? "border-primary bg-primary/15 shadow-lg shadow-primary/10"
+                                  : "border-border bg-secondary/30 hover:border-primary/40"
+                              }`}
+                            >
+                              <span className="text-4xl">{opt.emoji}</span>
+                              <span className="font-semibold text-sm">{opt.label}</span>
+                            </motion.button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
 
-                    {error && <p className="text-sm text-destructive">{error}</p>}
+                      <div className="space-y-3">
+                        <Label className="flex items-center gap-2">
+                          <Zap className="w-4 h-4 text-primary" />
+                          What&apos;s your vibe coding proficiency level?
+                        </Label>
+                        <div className="grid gap-3 sm:grid-cols-3">
+                          {SKILL_OPTIONS.map((opt) => (
+                            <motion.button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => setSkillLevel(opt.value)}
+                              whileHover={{ scale: 1.02, y: -2 }}
+                              whileTap={{ scale: 0.98 }}
+                              className={`flex flex-col items-center gap-2 rounded-2xl border-2 p-5 text-center transition-all ${
+                                skillLevel === opt.value
+                                  ? "border-primary bg-primary/15 shadow-lg shadow-primary/10"
+                                  : "border-border bg-secondary/30 hover:border-primary/40"
+                              }`}
+                            >
+                              <span className="text-4xl">{opt.emoji}</span>
+                              <span className="font-semibold text-sm">{opt.label}</span>
+                              <span className="text-xs text-muted-foreground">{opt.description}</span>
+                            </motion.button>
+                          ))}
+                        </div>
+                      </div>
 
-                    <Button type="submit" className="w-full" disabled={isSubmitting} size="lg">
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Saving...
-                        </>
-                      ) : myProfileId ? (
-                        <>
-                          <Pencil className="w-4 h-4 mr-2" />
-                          Update profile
-                        </>
-                      ) : (
-                        <>
-                          <UserPlus className="w-4 h-4 mr-2" />
-                          Create profile
-                        </>
-                      )}
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
+                      {error && <p className="text-sm text-destructive">{error}</p>}
+
+                      <Button type="submit" className="w-full" disabled={isSubmitting} size="lg">
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Saving...
+                          </>
+                        ) : myProfileId ? (
+                          <>
+                            <Pencil className="w-4 h-4 mr-2" />
+                            Update profile
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus className="w-4 h-4 mr-2" />
+                            Create profile
+                          </>
+                        )}
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+              )}
             </motion.div>
 
             {/* Groups - below profile when admin creates them */}

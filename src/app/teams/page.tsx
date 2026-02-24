@@ -11,10 +11,9 @@ import { useSearchParams } from "next/navigation"
 import { Suspense } from "react"
 import { Team, Profile, CreateTeamSafeResult } from "@/types/database"
 import { supabase } from "@/lib/supabase"
-import { setEventPhase, getEventPhase, subscribeToEventPhase, type EventPhase } from "@/lib/event-state"
+import { setEventPhase, getEventPhase, subscribeToEventPhase } from "@/lib/event-state"
 import { getAdminMode, subscribeToAdminMode } from "@/lib/admin-state"
 import { fetchPairs } from "@/lib/pairs"
-import { PhaseTransitionOverlay, usePreviousPhase } from "@/components/phase-transition-overlay"
 
 const ADMIN_CODE = "vibegames2024"
 const PROFILES_STORAGE_KEY = "vibe-games-profiles"
@@ -34,8 +33,7 @@ function TeamsPageContent() {
   const [selectedIdea, setSelectedIdea] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [useLocalStorage, setUseLocalStorage] = useState(false)
-  const [eventPhase, setEventPhaseState] = useState<EventPhase>("profiles")
-  const previousPhase = usePreviousPhase(eventPhase)
+  const [eventPhase, setEventPhaseState] = useState<string>("profiles")
   const [isUnlockingVoting, setIsUnlockingVoting] = useState(false)
   const [myProfileId, setMyProfileId] = useState<string | null>(null)
   const [partnerCreatedNotice, setPartnerCreatedNotice] = useState(false)
@@ -203,7 +201,6 @@ function TeamsPageContent() {
   if (isPhaseLocked) {
     return (
       <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8">
-        <PhaseTransitionOverlay previousPhase={previousPhase} currentPhase={eventPhase} isAdmin={isAdmin} />
         <div className="max-w-xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -226,7 +223,6 @@ function TeamsPageContent() {
 
   return (
     <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8">
-      <PhaseTransitionOverlay previousPhase={previousPhase} currentPhase={eventPhase} isAdmin={isAdmin} />
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <motion.div

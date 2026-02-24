@@ -7,7 +7,8 @@ import { VotingCard } from "@/components/voting-card"
 import { Leaderboard } from "@/components/leaderboard"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Trophy, RefreshCw, CheckCircle2, PartyPopper, Trash2, ShieldAlert } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Trophy, RefreshCw, CheckCircle2, PartyPopper, Trash2, ShieldAlert, UserPlus, LogOut } from "lucide-react"
 import { Team, Vote, Profile } from "@/types/database"
 import { supabase, VotingCategory } from "@/lib/supabase"
 import { getEventPhase, setEventPhase as setEventPhaseFn, subscribeToEventPhase } from "@/lib/event-state"
@@ -18,6 +19,7 @@ const ADMIN_CODE = "vibegames2024"
 const RESET_PASSWORD = "resetvibes"
 const MY_PROFILE_ID_KEY = "vibe-games-my-profile-id"
 const PROFILES_STORAGE_KEY = "vibe-games-profiles"
+const GUEST_VOTER_NAME_KEY = "vibe-games-guest-voter-name"
 
 function VotingContent() {
   const router = useRouter()
@@ -38,6 +40,8 @@ function VotingContent() {
   const [useLocalStorage, setUseLocalStorage] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
   const [eventPhase, setEventPhaseState] = useState<string>("profiles")
+  const [guestVoterName, setGuestVoterName] = useState<string>("")
+  const [guestNameInput, setGuestNameInput] = useState("")
 
   useEffect(() => {
     getEventPhase().then(setEventPhaseState)
@@ -48,6 +52,8 @@ function VotingContent() {
   useEffect(() => {
     const stored = typeof window !== "undefined" ? localStorage.getItem(MY_PROFILE_ID_KEY) : null
     if (stored) setMyProfileId(stored)
+    const storedGuest = typeof window !== "undefined" ? localStorage.getItem(GUEST_VOTER_NAME_KEY) : null
+    if (storedGuest) setGuestVoterName(storedGuest)
   }, [])
 
   useEffect(() => {
@@ -117,7 +123,20 @@ function VotingContent() {
   }, [useLocalStorage])
 
   const myProfile = myProfileId ? profiles.find((p) => p.id === myProfileId) : null
-  const voterName = myProfile?.name ?? ""
+  const voterName = myProfile?.name || guestVoterName || ""
+
+  const handleGuestJoin = () => {
+    const trimmed = guestNameInput.trim()
+    if (!trimmed) return
+    setGuestVoterName(trimmed)
+    localStorage.setItem(GUEST_VOTER_NAME_KEY, trimmed)
+    setGuestNameInput("")
+  }
+
+  const handleGuestLeave = () => {
+    setGuestVoterName("")
+    localStorage.removeItem(GUEST_VOTER_NAME_KEY)
+  }
 
   const handleVote = async (teamId: string, category: VotingCategory, score: number) => {
     if (!voterName) return
@@ -261,28 +280,55 @@ function VotingContent() {
           </p>
         </motion.div>
 
-        {/* Voting as (from profile) */}
+        {/* Voting as (from profile or guest) */}
         {voterName && (
-          <motion.p
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center text-sm text-muted-foreground mb-6"
+            className="flex items-center justify-center gap-3 text-sm text-muted-foreground mb-6"
           >
-            Voting as: <span className="text-primary font-medium">{voterName}</span>
-          </motion.p>
+            <span>
+              Voting as: <span className="text-primary font-medium">{voterName}</span>
+              {!myProfile && <span className="text-muted-foreground/60 ml-1">(guest)</span>}
+            </span>
+            {!myProfile && (
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-foreground" onClick={handleGuestLeave}>
+                <LogOut className="w-3 h-3 mr-1" />
+                Leave
+              </Button>
+            )}
+          </motion.div>
         )}
         {!isLoading && !voterName && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center mb-8 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 max-w-md mx-auto"
+            className="text-center mb-8 max-w-md mx-auto"
           >
-            <p className="text-sm text-amber-700 dark:text-amber-400 mb-3">
-              Create your profile on the Pairing page to vote.
-            </p>
-            <Link href="/pairing">
-              <Button size="sm">Go to Pairing</Button>
-            </Link>
+            <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent">
+              <CardContent className="p-6">
+                <UserPlus className="w-8 h-8 text-primary mx-auto mb-3" />
+                <h3 className="font-semibold mb-1">Join as a Voter</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Enter your name to start voting on all teams.
+                </p>
+                <form
+                  onSubmit={(e) => { e.preventDefault(); handleGuestJoin() }}
+                  className="flex gap-2"
+                >
+                  <Input
+                    placeholder="Your name"
+                    value={guestNameInput}
+                    onChange={(e) => setGuestNameInput(e.target.value)}
+                    className="flex-1"
+                    autoFocus
+                  />
+                  <Button type="submit" disabled={!guestNameInput.trim()}>
+                    Join
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
           </motion.div>
         )}
 

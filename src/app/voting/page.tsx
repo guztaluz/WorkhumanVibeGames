@@ -220,7 +220,7 @@ function VotingContent() {
         await supabase.from('votes').delete().neq('id', '00000000-0000-0000-0000-000000000000')
         await supabase.from('teams').delete().neq('id', '00000000-0000-0000-0000-000000000000')
         await supabase.from('pairs').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-        await supabase.from('ger_claps').update({ count: 0 }).eq('id', 'default')
+        await supabase.from('ger_claps' as never).update({ count: 0 } as never).eq('id', 'default')
       }
 
       await setEventPhaseFn("voting")

@@ -56,9 +56,25 @@ export function subscribeToEventPhase(callback: (phase: EventPhase) => void): ()
   }
   window.addEventListener("event-phase-changed", handler)
 
+  // Supabase Realtime so other browsers receive admin phase changes
+  const channel = supabase
+    .channel("event-state-realtime")
+    .on(
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "event_state", filter: "id=eq.default" },
+      (payload) => {
+        const newPhase = (payload.new as { current_phase?: string })?.current_phase as EventPhase
+        if (newPhase) callback(newPhase)
+      }
+    )
+    .subscribe()
+
   if (typeof window !== "undefined") {
     getEventPhase().then(callback)
   }
 
-  return () => window.removeEventListener("event-phase-changed", handler)
+  return () => {
+    window.removeEventListener("event-phase-changed", handler)
+    supabase.removeChannel(channel)
+  }
 }

@@ -11,8 +11,9 @@ import { Input } from "@/components/ui/input"
 import { Trophy, RefreshCw, CheckCircle2, PartyPopper, Trash2, ShieldAlert, UserPlus, LogOut } from "lucide-react"
 import { Team, Vote, Profile } from "@/types/database"
 import { supabase, VotingCategory } from "@/lib/supabase"
-import { getEventPhase, setEventPhase as setEventPhaseFn, subscribeToEventPhase } from "@/lib/event-state"
+import { getEventPhase, setEventPhase as setEventPhaseFn, subscribeToEventPhase, type EventPhase } from "@/lib/event-state"
 import { getAdminMode, subscribeToAdminMode } from "@/lib/admin-state"
+import { PhaseTransitionOverlay, usePreviousPhase } from "@/components/phase-transition-overlay"
 import Link from "next/link"
 
 const ADMIN_CODE = "vibegames2024"
@@ -39,7 +40,8 @@ function VotingContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [useLocalStorage, setUseLocalStorage] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
-  const [eventPhase, setEventPhaseState] = useState<string>("profiles")
+  const [eventPhase, setEventPhaseState] = useState<EventPhase>("profiles")
+  const previousPhase = usePreviousPhase(eventPhase)
   const [guestVoterName, setGuestVoterName] = useState<string>("")
   const [guestNameInput, setGuestNameInput] = useState("")
 
@@ -241,6 +243,7 @@ function VotingContent() {
   if (eventPhase !== "voting" && eventPhase !== "results") {
     return (
       <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+        <PhaseTransitionOverlay previousPhase={previousPhase} currentPhase={eventPhase} isAdmin={isAdmin} />
         <div className="max-w-xl w-full text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -263,6 +266,7 @@ function VotingContent() {
 
   return (
     <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8">
+      <PhaseTransitionOverlay previousPhase={previousPhase} currentPhase={eventPhase} isAdmin={isAdmin} />
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <motion.div

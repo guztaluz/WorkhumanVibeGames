@@ -25,11 +25,11 @@ import { Profile } from "@/types/database"
 import { supabase } from "@/lib/supabase"
 import { ProfileAvatar, getEmojiFromAvatar, getEmojiBgFromAvatar, isEmojiAvatar } from "@/components/profile-avatar"
 import { cn } from "@/lib/utils"
-import { setEventPhase, getEventPhase, subscribeToEventPhase } from "@/lib/event-state"
+import { setEventPhase, getEventPhase, subscribeToEventPhase, type EventPhase } from "@/lib/event-state"
 import { getAdminMode, subscribeToAdminMode } from "@/lib/admin-state"
 import { pairProfiles, pairLateJoiners } from "@/lib/pairing"
 import { savePairs, appendPairs, fetchPairs } from "@/lib/pairs"
-import type { EventPhase } from "@/lib/event-state"
+import { PhaseTransitionOverlay, usePreviousPhase } from "@/components/phase-transition-overlay"
 
 const ADMIN_CODE = "vibegames2024"
 const STORAGE_KEY = "vibe-games-profiles"
@@ -146,6 +146,7 @@ function PairingPageContent() {
 
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [eventPhase, setEventPhaseState] = useState<EventPhase>("profiles")
+  const previousPhase = usePreviousPhase(eventPhase)
   const [isLoading, setIsLoading] = useState(true)
   const [useLocalStorage, setUseLocalStorage] = useState(false)
   const [name, setName] = useState("")
@@ -220,9 +221,6 @@ function PairingPageContent() {
     const channel = supabase
       .channel("pairing-profiles")
       .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, loadProfiles)
-      .on("postgres_changes", { event: "*", schema: "public", table: "event_state" }, () => {
-        getEventPhase().then(setEventPhaseState)
-      })
       .on("postgres_changes", { event: "*", schema: "public", table: "pairs" }, loadStoredPairs)
       .subscribe()
     return () => {
@@ -413,6 +411,7 @@ function PairingPageContent() {
 
   return (
     <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8">
+      <PhaseTransitionOverlay previousPhase={previousPhase} currentPhase={eventPhase} isAdmin={isAdmin} />
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <motion.div

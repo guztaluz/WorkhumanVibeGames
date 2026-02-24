@@ -241,9 +241,9 @@ function PairingPageContent() {
     }
   }
 
-  // When my profile was deleted by admin, reset so user can create again
+  // When my profile was deleted by admin (or all data reset), reset so user can create again
   useEffect(() => {
-    if (!myProfileId || isLoading || profiles.length === 0) return
+    if (!myProfileId || isLoading) return
     const found = profiles.some((p) => p.id === myProfileId)
     if (!found) {
       setMyProfileId(null)

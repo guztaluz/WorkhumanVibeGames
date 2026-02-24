@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { Sparkles, Users, UserPlus, Trophy, Crown, Settings2, Trash2, UsersRound, KeyRound, Loader2 } from "lucide-react"
+import { Sparkles, Users, UserPlus, Trophy, Crown, Settings2, Trash2, UsersRound, KeyRound, Loader2, Lock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getEventPhase, setEventPhase as setEventPhaseFn, subscribeToEventPhase, type EventPhase } from "@/lib/event-state"
 import { getAdminMode, setAdminMode, subscribeToAdminMode } from "@/lib/admin-state"
@@ -284,6 +284,7 @@ export function Navigation() {
                   >
                     <Icon className={cn("w-4 h-4 shrink-0", isResultsTab && !isActive && !isDisabled && "text-yellow-500")} />
                     <span className="font-medium">{item.step}. {item.label}</span>
+                    {isDisabled && <Lock className="w-3 h-3 text-muted-foreground/70" />}
 
                     {isActive && !isDisabled && (
                       <motion.div

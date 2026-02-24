@@ -96,6 +96,7 @@ export function Navigation() {
       await supabase.from("teams").delete().neq("id", "00000000-0000-0000-0000-000000000000")
       await supabase.from("pairs").delete().neq("id", "00000000-0000-0000-0000-000000000000")
       await supabase.from("profiles").delete().neq("id", "00000000-0000-0000-0000-000000000000")
+      await supabase.from("ger_claps").update({ count: 0 }).eq("id", "default")
       await setEventPhaseFn("profiles")
     } catch {
       localStorage.setItem("vibe-games-event-phase", "profiles")

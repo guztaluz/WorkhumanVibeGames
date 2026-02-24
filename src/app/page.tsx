@@ -1,11 +1,11 @@
 "use client"
 
-import { useRef } from "react"
-import { motion, useScroll, useTransform } from "framer-motion"
+import { useRef, useState } from "react"
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion"
 import { ToolLogo } from "@/components/tool-logo"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Sparkles, Users, Trophy, Zap, Target, Palette, ArrowRight, UserPlus, Lightbulb } from "lucide-react"
+import { Sparkles, Users, Trophy, Zap, Target, Palette, ArrowRight, UserPlus, Lightbulb, Heart } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 
@@ -68,6 +68,81 @@ const container = {
 const item = {
   hidden: { opacity: 0, y: 20 },
   show: { opacity: 1, y: 0 },
+}
+
+function ThanksGerBadge() {
+  const [thanked, setThanked] = useState(false)
+  const [clickCount, setClickCount] = useState(0)
+
+  const messages = [
+    "Thanks, Ger!",
+    "Legend!",
+    "We owe you one!",
+    "Absolute hero!",
+    "Ger, you're the GOAT",
+    "Name a building after him",
+    "OK that's enough",
+  ]
+
+  const handleClick = () => {
+    setThanked(true)
+    setClickCount((c) => Math.min(c + 1, messages.length - 1))
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      className="group relative flex items-center gap-3 px-5 py-2.5 rounded-full border border-border/50 bg-card/60 hover:border-primary/40 hover:bg-card/90 transition-all duration-300 cursor-pointer"
+    >
+      <div className="relative">
+        <img
+          src="/ger.png"
+          alt="Ger"
+          className="w-10 h-10 rounded-full object-cover border-2 border-primary/30 group-hover:border-primary/60 transition-colors"
+        />
+        <AnimatePresence>
+          {thanked && (
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary flex items-center justify-center"
+            >
+              <Heart className="w-3 h-3 text-white fill-white" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+      <div className="text-left">
+        <AnimatePresence mode="wait">
+          <motion.span
+            key={clickCount}
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            transition={{ duration: 0.2 }}
+            className="text-sm font-medium block"
+          >
+            {thanked ? messages[clickCount] : "Thanks, Ger!"}
+          </motion.span>
+        </AnimatePresence>
+        <span className="text-xs text-muted-foreground">
+          {thanked ? "for the Lovable licenses" : "Tap to thank him for the licenses"}
+        </span>
+      </div>
+      <AnimatePresence>
+        {thanked && (
+          <motion.span
+            initial={{ scale: 0, rotate: -20 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: "spring", stiffness: 400, damping: 15 }}
+            className="text-lg"
+          >
+            🎉
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </button>
+  )
 }
 
 export default function Home() {
@@ -288,38 +363,62 @@ export default function Home() {
         </div>
       </section>
 
-      {/* AI Tools - Collaborate and learn together */}
+      {/* Your Weapon: Lovable */}
       <section className="py-20 overflow-hidden">
-        <div className="w-full">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="text-center mb-12 px-4 sm:px-6"
+            className="text-center mb-10"
           >
-            <h2 className="font-display text-3xl sm:text-4xl font-thin mb-4">Build with Your Favourite AI Tools</h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Use Cursor, Claude, Replit, V0, Lovable, or any tool you&apos;re comfortable with. The idea is to work together, collaborate, and learn from each other—no restrictions, just vibes.
+            <p className="text-sm uppercase tracking-[0.3em] text-primary mb-3 font-medium">Choose wisely (jk, it&apos;s already chosen)</p>
+            <h2 className="font-display text-5xl sm:text-6xl md:text-7xl font-thin mb-6">
+              Your Weapon: <span className="gradient-text font-normal">Lovable</span>
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-4">
+              We&apos;ve got shiny new Lovable licenses and zero excuses not to use them. 
+              It&apos;s time to experiment, break things, accidentally build something genius, 
+              and learn along the way. Think of it as arts &amp; crafts, but with AI and 
+              slightly more existential dread.
+            </p>
+            <p className="text-sm text-muted-foreground/70 italic max-w-lg mx-auto">
+              Seriously though—play around, push buttons, ask it weird things. That&apos;s the whole point.
             </p>
           </motion.div>
 
-          <div className="relative overflow-hidden w-screen left-1/2 -translate-x-1/2">
-            <div className="flex gap-10 animate-marquee w-fit py-4">
-              {[...AI_TOOLS, ...AI_TOOLS].map((tool, i) => (
-                <a
-                  key={`${tool.name}-${i}`}
-                  href={`https://${tool.domain}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-4 shrink-0 px-6 py-4 rounded-xl border border-border/50 bg-card/80 hover:border-primary/50 hover:bg-card transition-colors"
-                >
-                  <ToolLogo name={tool.name} domain={tool.domain} size="lg" />
-                  <span className="font-medium text-base whitespace-nowrap">{tool.name}</span>
-                </a>
-              ))}
-            </div>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="flex justify-center mb-12"
+          >
+            <a
+              href="https://lovable.dev"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center gap-5 px-10 py-6 rounded-2xl border-2 border-primary/30 bg-card/80 hover:border-primary hover:bg-card transition-all duration-300 hover:shadow-[0_0_40px_rgba(var(--primary-rgb,168,85,247),0.15)]"
+            >
+              <ToolLogo name="Lovable" domain="lovable.dev" size="lg" />
+              <div className="text-left">
+                <span className="font-semibold text-xl block group-hover:text-primary transition-colors">Lovable</span>
+                <span className="text-sm text-muted-foreground">lovable.dev</span>
+              </div>
+              <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all ml-4" />
+            </a>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.4, delay: 0.4 }}
+            className="flex justify-center"
+          >
+            <ThanksGerBadge />
+          </motion.div>
         </div>
       </section>
 

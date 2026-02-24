@@ -94,7 +94,7 @@ function ThanksGerBadge() {
       .eq("id", "default")
       .single()
       .then(({ data }) => {
-        if (data) setClaps(data.count)
+        if (data) setClaps((data as { count: number }).count)
       })
 
     const channel = supabase
@@ -103,7 +103,7 @@ function ThanksGerBadge() {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "ger_claps", filter: "id=eq.default" },
         (payload) => {
-          setClaps(payload.new.count)
+          setClaps((payload.new as { count: number }).count)
         }
       )
       .subscribe()

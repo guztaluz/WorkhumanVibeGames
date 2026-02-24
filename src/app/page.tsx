@@ -479,31 +479,123 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
+      {/* CTA Section — Epic Finale */}
+      <section className="relative py-32 sm:py-40 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        {/* Layered radial background */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-background" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_60%,oklch(0.78_0.15_75/0.12),transparent)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_55%,oklch(0.68_0.18_45/0.08),transparent)]" />
+
+        {/* Animated floating orbs */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="max-w-3xl mx-auto text-center"
+          animate={{ y: [0, -20, 0], x: [0, 10, 0] }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-1/4 left-[15%] w-64 h-64 rounded-full bg-primary/5 blur-3xl pointer-events-none"
+        />
+        <motion.div
+          animate={{ y: [0, 15, 0], x: [0, -12, 0] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          className="absolute bottom-1/4 right-[15%] w-72 h-72 rounded-full bg-accent/5 blur-3xl pointer-events-none"
+        />
+        <motion.div
+          animate={{ y: [0, -10, 0] }}
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+          className="absolute top-1/3 right-[30%] w-40 h-40 rounded-full bg-chart-3/5 blur-3xl pointer-events-none"
+        />
+
+        {/* Decorative floating icons */}
+        <motion.div
+          animate={{ y: [0, -15, 0], rotate: [0, 10, 0] }}
+          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-[20%] left-[10%] sm:left-[18%] text-primary/20 pointer-events-none"
         >
-          <Card className="glass border-primary/30 overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/10 to-chart-3/10 animate-gradient" />
-            <CardContent className="relative p-12">
-              <h2 className="font-display text-3xl font-bold mb-4">Ready to Vibe?</h2>
-              <p className="text-muted-foreground mb-8">
-                Create your profile, form your team, pick an idea, and let the games begin!
-              </p>
-              <Link href="/pairing">
-                <Button size="lg" className="group">
-                  Join & Create Pairs
-                  <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+          <Sparkles className="w-8 h-8 sm:w-12 sm:h-12" />
         </motion.div>
+        <motion.div
+          animate={{ y: [0, 12, 0], rotate: [0, -8, 0] }}
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
+          className="absolute top-[25%] right-[10%] sm:right-[18%] text-accent/20 pointer-events-none"
+        >
+          <Trophy className="w-8 h-8 sm:w-10 sm:h-10" />
+        </motion.div>
+        <motion.div
+          animate={{ y: [0, -10, 0], rotate: [0, 15, 0] }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
+          className="absolute bottom-[25%] left-[12%] sm:left-[22%] text-chart-3/20 pointer-events-none"
+        >
+          <Zap className="w-6 h-6 sm:w-9 sm:h-9" />
+        </motion.div>
+        <motion.div
+          animate={{ y: [0, 14, 0], rotate: [0, -12, 0] }}
+          transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 2.2 }}
+          className="absolute bottom-[30%] right-[12%] sm:right-[20%] text-primary/15 pointer-events-none"
+        >
+          <Target className="w-7 h-7 sm:w-10 sm:h-10" />
+        </motion.div>
+
+        {/* Content */}
+        <div className="relative z-10 max-w-4xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <p className="text-sm uppercase tracking-[0.3em] text-primary mb-6 font-medium">
+              The arena awaits
+            </p>
+          </motion.div>
+
+          <motion.h2
+            initial={{ opacity: 0, y: 30, scale: 0.9 }}
+            whileInView={{ opacity: 1, y: 0, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7, delay: 0.1 }}
+            className="font-display text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-thin mb-8"
+          >
+            <span className="gradient-text">Ready to Vibe?</span>
+          </motion.h2>
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.25 }}
+            className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-12"
+            style={{ fontFamily: '"Times New Roman", serif' }}
+          >
+            Create your profile, form your team, pick an idea, and let the games begin.
+            Glory waits for no one.
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+          >
+            <Link href="/pairing">
+              <Button
+                size="lg"
+                className="group relative text-lg px-10 py-6 animate-pulse-glow"
+              >
+                <span className="relative z-10 flex items-center gap-2">
+                  Enter the Arena
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform duration-300" />
+                </span>
+              </Button>
+            </Link>
+          </motion.div>
+
+          {/* Decorative divider line */}
+          <motion.div
+            initial={{ scaleX: 0 }}
+            whileInView={{ scaleX: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8, delay: 0.6 }}
+            className="mt-16 mx-auto w-48 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent"
+          />
+        </div>
       </section>
     </div>
   )

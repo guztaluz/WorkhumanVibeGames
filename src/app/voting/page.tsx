@@ -188,7 +188,7 @@ function VotingContent() {
       localStorage.setItem('vibe-games-votes', JSON.stringify(updatedVotes))
     } else {
       // Use Supabase with upsert
-      const { error } = await supabase
+      const { data: upsertData, error } = await supabase
         .from('votes')
         .upsert(
           {
@@ -201,8 +201,18 @@ function VotingContent() {
             onConflict: 'voter_name,team_id,category',
           }
         )
+        .select()
 
-      if (error) throw error
+      console.log('[VOTE DEBUG] upsert result:', { upsertData, error, voterName, teamId, category, score })
+
+      if (error) {
+        console.error('[VOTE DEBUG] upsert error:', error)
+        throw error
+      }
+
+      if (!upsertData || upsertData.length === 0) {
+        console.error('[VOTE DEBUG] upsert returned empty data - RLS may be blocking writes')
+      }
       // Optimistically update local state so the voter sees their score immediately
       // without waiting for the debounced realtime refetch
       setVotes(prev => {

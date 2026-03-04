@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, Suspense } from "react"
+import { useState, useEffect, useCallback, useRef, Suspense } from "react"
 import { motion } from "framer-motion"
 import { useRouter, useSearchParams } from "next/navigation"
 import { VotingCard } from "@/components/voting-card"
@@ -60,27 +60,6 @@ function VotingContent() {
     loadData()
   }, [])
 
-  // Set up real-time subscription for votes
-  useEffect(() => {
-    if (useLocalStorage) return
-
-    const channel = supabase
-      .channel('votes-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'votes' },
-        () => {
-          // Reload votes when changes occur
-          loadVotes()
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [useLocalStorage])
-
   const loadData = async () => {
     setIsLoading(true)
     try {
@@ -121,6 +100,43 @@ function VotingContent() {
     const { data } = await supabase.from('votes').select('*')
     if (data) setVotes(data)
   }, [useLocalStorage])
+
+  // Debounced vote reload — collapses many rapid realtime events into one fetch
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const debouncedLoadVotes = useCallback(() => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+    debounceTimerRef.current = setTimeout(() => {
+      loadVotes()
+    }, 2000) // Wait 2s after last change before refetching
+  }, [loadVotes])
+
+  // Clean up debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+    }
+  }, [])
+
+  // Set up real-time subscription for votes
+  useEffect(() => {
+    if (useLocalStorage) return
+
+    const channel = supabase
+      .channel('votes-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'votes' },
+        () => {
+          // Debounced reload — prevents 26 clients each fetching on every single vote
+          debouncedLoadVotes()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [useLocalStorage, debouncedLoadVotes])
 
   const myProfile = myProfileId ? profiles.find((p) => p.id === myProfileId) : null
   const voterName = myProfile?.name || guestVoterName || ""
@@ -187,7 +203,28 @@ function VotingContent() {
         )
 
       if (error) throw error
-      // Real-time subscription will update the votes
+      // Optimistically update local state so the voter sees their score immediately
+      // without waiting for the debounced realtime refetch
+      setVotes(prev => {
+        const idx = prev.findIndex(
+          v => v.voter_name.toLowerCase() === voterName.toLowerCase() &&
+               v.team_id === teamId &&
+               v.category === category
+        )
+        if (idx >= 0) {
+          const updated = [...prev]
+          updated[idx] = { ...updated[idx], score }
+          return updated
+        }
+        return [...prev, {
+          id: crypto.randomUUID(),
+          voter_name: voterName,
+          team_id: teamId,
+          category,
+          score,
+          created_at: new Date().toISOString(),
+        }]
+      })
     }
   }
 

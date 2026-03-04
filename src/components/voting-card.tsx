@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -44,20 +44,48 @@ export function VotingCard({ team, voterName, existingVotes, onVote, disabled, p
     setHasVoted(voterVotes.length > 0)
   }, [existingVotes, voterName, team.id])
 
-  const handleStarClick = async (category: VotingCategory, score: number) => {
+  // Debounce vote submissions: wait 400ms after last click before sending
+  const pendingVotesRef = useRef<Map<VotingCategory, { score: number; timer: ReturnType<typeof setTimeout> }>>(new Map())
+
+  const handleStarClick = useCallback((category: VotingCategory, score: number) => {
     if (disabled || isTeamMember) return
-    
-    setSubmitting(category)
-    try {
-      await onVote(team.id, category, score)
-      setVotes(prev => ({ ...prev, [category]: score }))
-      setHasVoted(true)
-    } catch (error) {
-      console.error('Failed to submit vote:', error)
-    } finally {
-      setSubmitting(null)
+
+    // Optimistic UI update immediately
+    setVotes(prev => ({ ...prev, [category]: score }))
+    setHasVoted(true)
+
+    // Clear any pending debounce for this category
+    const pending = pendingVotesRef.current.get(category)
+    if (pending) clearTimeout(pending.timer)
+
+    // Debounce the actual API call
+    const timer = setTimeout(async () => {
+      pendingVotesRef.current.delete(category)
+      setSubmitting(category)
+      try {
+        await onVote(team.id, category, score)
+      } catch (error) {
+        console.error('Failed to submit vote:', error)
+        // Revert optimistic update on failure
+        setVotes(prev => {
+          const reverted = { ...prev }
+          delete reverted[category]
+          return reverted
+        })
+      } finally {
+        setSubmitting(null)
+      }
+    }, 400)
+
+    pendingVotesRef.current.set(category, { score, timer })
+  }, [disabled, isTeamMember, onVote, team.id])
+
+  // Cleanup pending timers on unmount
+  useEffect(() => {
+    return () => {
+      pendingVotesRef.current.forEach(({ timer }) => clearTimeout(timer))
     }
-  }
+  }, [])
 
   const initials = team.name
     .split(' ')

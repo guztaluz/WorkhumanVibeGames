@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, Suspense } from "react"
+import { useState, useEffect, useCallback, useRef, Suspense } from "react"
 import { motion } from "framer-motion"
 import { useRouter, useSearchParams } from "next/navigation"
 import { VotingCard } from "@/components/voting-card"
@@ -56,29 +56,15 @@ function VotingContent() {
     if (storedGuest) setGuestVoterName(storedGuest)
   }, [])
 
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  // Set up real-time subscription for votes
-  useEffect(() => {
-    if (useLocalStorage) return
-
-    const channel = supabase
-      .channel('votes-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'votes' },
-        () => {
-          // Reload votes when changes occur
-          loadVotes()
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
+  const loadVotes = useCallback(async () => {
+    if (useLocalStorage) {
+      const storedVotes = localStorage.getItem('vibe-games-votes')
+      if (storedVotes) setVotes(JSON.parse(storedVotes))
+      return
     }
+
+    const { data } = await supabase.from('votes').select('*')
+    if (data) setVotes(data)
   }, [useLocalStorage])
 
   const loadData = async () => {
@@ -111,16 +97,49 @@ function VotingContent() {
     }
   }
 
-  const loadVotes = useCallback(async () => {
-    if (useLocalStorage) {
-      const storedVotes = localStorage.getItem('vibe-games-votes')
-      if (storedVotes) setVotes(JSON.parse(storedVotes))
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  // Throttled real-time subscription for votes — at most one reload every 3s
+  const throttleRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pendingReloadRef = useRef(false)
+
+  const throttledLoadVotes = useCallback(() => {
+    if (throttleRef.current) {
+      pendingReloadRef.current = true
       return
     }
 
-    const { data } = await supabase.from('votes').select('*')
-    if (data) setVotes(data)
-  }, [useLocalStorage])
+    loadVotes()
+    throttleRef.current = setTimeout(() => {
+      throttleRef.current = null
+      if (pendingReloadRef.current) {
+        pendingReloadRef.current = false
+        loadVotes()
+      }
+    }, 3000)
+  }, [loadVotes])
+
+  useEffect(() => {
+    if (useLocalStorage) return
+
+    const channel = supabase
+      .channel('votes-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'votes' },
+        () => {
+          throttledLoadVotes()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+      if (throttleRef.current) clearTimeout(throttleRef.current)
+    }
+  }, [useLocalStorage, throttledLoadVotes])
 
   const myProfile = myProfileId ? profiles.find((p) => p.id === myProfileId) : null
   const voterName = myProfile?.name || guestVoterName || ""

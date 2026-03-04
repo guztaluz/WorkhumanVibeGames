@@ -65,7 +65,7 @@ function VotingContent() {
     try {
       const [teamsResult, votesResult, profilesResult] = await Promise.all([
         supabase.from('teams').select('*').order('created_at', { ascending: false }),
-        supabase.from('votes').select('*'),
+        supabase.from('votes').select('*').limit(5000),
         supabase.from('profiles').select('*'),
       ])
 
@@ -97,7 +97,7 @@ function VotingContent() {
       return
     }
 
-    const { data } = await supabase.from('votes').select('*')
+    const { data } = await supabase.from('votes').select('*').limit(5000)
     if (data) setVotes(data)
   }, [useLocalStorage])
 

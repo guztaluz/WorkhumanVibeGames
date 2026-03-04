@@ -76,7 +76,7 @@ function ResultsContent() {
     try {
       const [teamsResult, votesResult, profilesResult] = await Promise.all([
         supabase.from('teams').select('*').order('created_at', { ascending: false }),
-        supabase.from('votes').select('*'),
+        supabase.from('votes').select('*').limit(5000),
         supabase.from('profiles').select('*'),
       ])
 
